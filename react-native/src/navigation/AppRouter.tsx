@@ -27,6 +27,8 @@ import { StateGalleryScreen } from '../screens/StateGalleryScreen';
 import { AboutScreen, NotificationsScreen, OrdersScreen } from '../screens/DataScreens';
 import { SupportHomeScreen, TicketDetailScreen } from '../screens/SupportScreens';
 import { NewTicketScreen, ProductFeedbackScreen } from '../screens/SupportFormScreens';
+import { GeekReaderHomeScreen } from '../features/geek-reader/presentation/GeekReaderHomeScreen';
+import { StoryDetailScreen } from '../features/geek-reader/presentation/StoryDetailScreen';
 import {
   PermissionsScreen,
   StorageScreen,
@@ -107,6 +109,8 @@ export function AppRouter() {
     case 'settings.about': screen = <AboutScreen />; break;
     case 'settings.deleteAccount': screen = <DeleteAccountScreen />; break;
     case 'states.gallery': screen = <StateGalleryScreen />; break;
+    case 'geekreader.home': screen = <GeekReaderHomeScreen />; break;
+    case 'geekreader.story': screen = <StoryDetailScreen />; break;
     default: screen = <HomeScreen />;
   }
   return (

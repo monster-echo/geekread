@@ -19,6 +19,7 @@ const quickActions: ReadonlyArray<Readonly<{
   { label: '优惠券', icon: 'gift', route: 'profile.coupons', feature: 'coupons' },
   { label: '通知', icon: 'bell', route: 'notifications.center', feature: 'notifications' },
   { label: '设置', icon: 'settings', route: 'settings.home' },
+  { label: '极客译读', icon: 'globe', route: 'geekreader.home' },
 ];
 
 export function HomeScreen() {
