@@ -1,0 +1,6 @@
+{
+  "string": [
+    { "name": "app_name", "value": "MobileStarter" },
+    { "name": "module_desc", "value": "MobileStarter reusable application template" }
+  ]
+}

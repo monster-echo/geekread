@@ -1,0 +1,27 @@
+name: ArkTS CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "arkts/**"
+      - "assets/**"
+      - "scripts/check-architecture.ps1"
+      - ".github/workflows/arkts-ci.yml"
+  pull_request:
+    paths:
+      - "arkts/**"
+      - "assets/**"
+      - "scripts/check-architecture.ps1"
+      - ".github/workflows/arkts-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: ./scripts/check-architecture.ps1

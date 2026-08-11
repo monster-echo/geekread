@@ -1,0 +1,64 @@
+name: ArkTS Publish
+
+# HarmonyOS / ArkTS publish.
+#
+# Why self-hosted: GitHub Actions has NO hosted HarmonyOS runner, and the
+# community `harmonyos-dev/setup-harmonyos-sdk` action only mirrors the older
+# API 9 command-line tools (commandline-tools 2.0.0.2). It cannot build this
+# project's target — HarmonyOS NEXT, API 18 / `5.1.0(18)`. A real build
+# therefore needs a self-hosted runner with DevEco Studio + the HarmonyOS 5.1
+# SDK installed. Register such a runner with the label `harmonyos`, then trigger
+# via a `v*` tag push or the Actions "Run workflow" button.
+#
+# Setup notes for the runner:
+#   - DevEco Studio + HarmonyOS 5.1 SDK (API 18) installed.
+#   - `ohpm` and the hvigor toolchain (`hvigorw`) resolvable on PATH. DevEco
+#     projects normally commit a `hvigorw` wrapper; if one is missing, open the
+#     project once in DevEco Studio to generate it, or add DevEco's hvigor to PATH.
+#   - For a signed/installable `.app`, add Huawei AGC signing material and wire
+#     a signing config in `build-profile.json5`. This workflow uploads the
+#     unsigned `.hap` by default.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: [self-hosted, harmonyos]
+    defaults:
+      run:
+        working-directory: arkts
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore HarmonyOS dependencies
+        run: ohpm install
+      - name: Inject app identity
+        # 发布身份（必填）：ArkTS 无构建期 define 机制，故在构建前把 app_id /
+        # environment 常量写入 ApiClient.ets。未配置则启动即崩。
+        # 取值优先 GitHub Variables，其次 Secrets；environment 发布默认 production。
+        env:
+          APP_ID: ${{ vars.APP_ID || secrets.APP_ID }}
+          APP_ENVIRONMENT: ${{ vars.APP_ENVIRONMENT || secrets.APP_ENVIRONMENT || 'production' }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "::error::APP_ID 未配置：请在仓库 Variables 或 Secrets 中设置 APP_ID 后再发布，不能为空。"
+            exit 1
+          fi
+          file=entry/src/main/ets/data/ApiClient.ets
+          sed -i "s|^const APP_ID: string = ''$|const APP_ID: string = '$APP_ID'|" "$file"
+          sed -i "s|^const APP_ENVIRONMENT: string = ''$|const APP_ENVIRONMENT: string = '$APP_ENVIRONMENT'|" "$file"
+          grep -n "APP_ID\|APP_ENVIRONMENT" "$file"
+      - name: Build HAP
+        run: hvigorw assembleHap --mode module -p product=default --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arkts-hap
+          path: |
+            arkts/entry/build/**/outputs/**/*.hap
+            arkts/**/outputs/default/*.hap
+          if-no-files-found: error

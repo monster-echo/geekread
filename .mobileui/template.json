@@ -1,0 +1,26 @@
+{
+  "templateVersion": "0.2.0",
+  "profile": "all",
+  "profiles": [
+    "react-native",
+    "arkts"
+  ],
+  "repositoryName": "geekread",
+  "packageName": "geekread",
+  "displayName": "极客译读",
+  "organization": "com.rwecho.geekread",
+  "appId": "geekread",
+  "features": [
+    "auth",
+    "billing",
+    "membership",
+    "notifications",
+    "settings",
+    "support",
+    "telemetry"
+  ],
+  "templateSource": {
+    "type": "local",
+    "commit": "f93fffd52247e734e30e10c410408d857a241dca"
+  }
+}

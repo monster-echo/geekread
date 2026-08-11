@@ -1,0 +1,19 @@
+{
+  "color": [
+    { "name": "start_window_background", "value": "#F6F7F9" },
+    { "name": "background", "value": "#F6F7F9" },
+    { "name": "surface", "value": "#FFFFFF" },
+    { "name": "surface_muted", "value": "#F1F3F5" },
+    { "name": "text", "value": "#17191D" },
+    { "name": "text_secondary", "value": "#667085" },
+    { "name": "border", "value": "#E4E7EC" },
+    { "name": "brand", "value": "#A84444" },
+    { "name": "brand_soft", "value": "#F6E9E9" },
+    { "name": "on_brand", "value": "#FFFFFF" },
+    { "name": "membership_surface", "value": "#17191D" },
+    { "name": "membership_text", "value": "#FFFFFF" },
+    { "name": "success", "value": "#2C9A5E" },
+    { "name": "warning", "value": "#D58B21" },
+    { "name": "error", "value": "#D24B4B" }
+  ]
+}
