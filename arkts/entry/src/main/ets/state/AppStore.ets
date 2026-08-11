@@ -34,6 +34,8 @@ export class AppStore {
     'DeleteAccount': AppRoute.DeleteAccount, 'NotificationCenter': AppRoute.NotificationCenter,
     'StateGallery': AppRoute.StateGallery, 'SupportTicket': AppRoute.SupportTicket,
     'NewSupportTicket': AppRoute.NewSupportTicket, 'ProductFeedback': AppRoute.ProductFeedback,
+    'GeekReader': AppRoute.GeekReader, 'GeekReaderDetail': AppRoute.GeekReaderDetail,
+    'geekReader.home': AppRoute.GeekReader, 'geekReader.story': AppRoute.GeekReaderDetail,
     'notifications.center': AppRoute.NotificationCenter, 'profile.home': AppRoute.Profile,
     'profile.edit': AppRoute.ProfileEdit, 'profile.statistics': AppRoute.Statistics,
     'profile.invite': AppRoute.Invite, 'profile.coupons': AppRoute.Coupons,
@@ -61,6 +63,7 @@ export class AppStore {
   busy: boolean = false
   theme: string = 'system'
   language: string = 'zh-CN'
+  geekReaderStoryId: number = -1
   textScale: number = 1
   config: RuntimeConfig | null = null
   user: AppUser | null = null
