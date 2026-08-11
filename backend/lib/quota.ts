@@ -1,5 +1,5 @@
-import { env } from './env.js';
-import { reserveTranslation } from './storage.js';
+import { env } from './env';
+import { reserveTranslation } from './storage';
 
 export function limitFor(isPro: boolean): number {
   return isPro ? env().proDailyTranslations : env().freeDailyTranslations;

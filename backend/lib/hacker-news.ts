@@ -1,4 +1,4 @@
-import { getJsonCache, setJsonCache } from './storage.js';
+import { getJsonCache, setJsonCache } from './storage';
 
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
 const listFreshTtlSeconds = 60;

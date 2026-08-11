@@ -1,8 +1,8 @@
-import { hasProEntitlement } from '../../../lib/entitlement.js';
-import { errorResponse, json, requireString, safeErrorStatus } from '../../../lib/http.js';
-import { translateWithModel } from '../../../lib/model.js';
-import { reserveDaily, today } from '../../../lib/quota.js';
-import { cacheTranslation, getCachedTranslation } from '../../../lib/storage.js';
+import { hasProEntitlement } from '../../../lib/entitlement';
+import { errorResponse, json, requireString, safeErrorStatus } from '../../../lib/http';
+import { translateWithModel } from '../../../lib/model';
+import { reserveDaily, today } from '../../../lib/quota';
+import { cacheTranslation, getCachedTranslation } from '../../../lib/storage';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant']);
 const MAX_ENTRIES = 20;

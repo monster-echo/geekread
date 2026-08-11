@@ -1,5 +1,5 @@
-import { fetchItems } from '../../../../lib/hacker-news.js';
-import { errorResponse, json, requireIds, safeErrorStatus } from '../../../../lib/http.js';
+import { fetchItems } from '../../../../lib/hacker-news';
+import { errorResponse, json, requireIds, safeErrorStatus } from '../../../../lib/http';
 
 export async function POST(request: Request): Promise<Response> {
   let payload: unknown;
