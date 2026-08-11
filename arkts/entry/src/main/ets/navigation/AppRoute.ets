@@ -39,7 +39,9 @@ export enum AppRoute {
   StateGallery,
   SupportTicket,
   NewSupportTicket,
-  ProductFeedback
+  ProductFeedback,
+  GeekReader,
+  GeekReaderDetail
 }
 
 export function routeTitle(route: AppRoute): string {
@@ -71,6 +73,8 @@ export function routeTitle(route: AppRoute): string {
     case AppRoute.SupportTicket: return '工单详情'
     case AppRoute.NewSupportTicket: return '联系客服'
     case AppRoute.ProductFeedback: return '产品反馈'
+    case AppRoute.GeekReader: return '极客译读'
+    case AppRoute.GeekReaderDetail: return '文章'
     default: return '功能页面'
   }
 }

@@ -22,6 +22,8 @@ import { SettingsUtilityPage } from './SettingsUtilityPage'
 import {
   NewSupportTicketPage, ProductFeedbackPage, SupportHomePage, SupportTicketPage
 } from './SupportPages'
+import { GeekReaderPage } from '../features/geek-reader/pages/GeekReaderPage'
+import { StoryDetailPage } from '../features/geek-reader/pages/StoryDetailPage'
 
 @Entry
 @Component
@@ -156,6 +158,10 @@ struct SettingsHost {
       ProductFeedbackPage({ store: this.store })
     } else if (this.store.route === AppRoute.StateGallery) {
       StateGalleryPage({ store: this.store })
+    } else if (this.store.route === AppRoute.GeekReader) {
+      GeekReaderPage({ store: this.store })
+    } else if (this.store.route === AppRoute.GeekReaderDetail) {
+      StoryDetailPage({ store: this.store })
     } else {
       SettingDetailPage({ store: this.store, route: this.store.route })
     }

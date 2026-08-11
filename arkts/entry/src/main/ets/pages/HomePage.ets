@@ -142,6 +142,12 @@ struct QuickActions {
         icon: AppIconName.Settings,
         route: AppRoute.Settings
       })
+      QuickAction({
+        store: this.store,
+        label: localized('极客译读', 'Geek Reader', this.store.language),
+        icon: AppIconName.Globe,
+        route: AppRoute.GeekReader
+      })
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
