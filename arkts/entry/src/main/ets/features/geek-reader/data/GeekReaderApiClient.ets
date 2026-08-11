@@ -2,6 +2,7 @@ import http from '@ohos.net.http'
 import { localStore } from '../../data/LocalStore'
 import { HNItem, Story, TargetLanguage } from '../domain/Models'
 import { toStory } from '../domain/Models'
+import { getEntitlementToken } from './Entitlement'
 
 const GEEK_READER_BASE: string = 'http://localhost:8787'
 
@@ -39,11 +40,11 @@ export interface ItemsResponse {
   stale: boolean
 }
 
-function authHeaders(): Record<string, string> {
+async function authHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   const installId = localStore.installationId()
   if (installId.length > 0) headers['x-install-id'] = installId
-  const token = localStore.readToken()
+  const token = await getEntitlementToken()
   if (token.length > 0) headers['authorization'] = `Bearer ${token}`
   return headers
 }
@@ -53,7 +54,7 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
   try {
     const response = await client.request(`${GEEK_READER_BASE}${path}`, {
       method,
-      header: authHeaders(),
+      header: await authHeaders(),
       extraData: body,
       expectDataType: http.HttpDataType.STRING,
       connectTimeout: 8000,

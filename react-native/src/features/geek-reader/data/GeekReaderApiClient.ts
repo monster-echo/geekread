@@ -1,5 +1,6 @@
 import type { HNItem, Story, TargetLanguage } from '../domain/models';
 import { toStory } from '../domain/models';
+import { getEntitlementToken } from './entitlement';
 
 const BASE = () => {
   const url = process.env.EXPO_PUBLIC_GEEKREAD_BACKEND_URL?.trim();
@@ -8,22 +9,19 @@ const BASE = () => {
 };
 
 // 默认 reader 懒加载 storage（避免 node 测试环境静态拉入 react-native/expo-secure-store）。
-// 生产首次调用动态 import；测试用 setInstallIdReader/setTokenReader 覆盖。
 let installIdReader: () => Promise<string> = async () => {
   const { readAnonymousId } = await import('../../../data/storage');
   return readAnonymousId();
 };
-let tokenReader: () => Promise<string | null> = async () => {
-  const { readSessionToken } = await import('../../../data/storage');
-  return readSessionToken();
-};
+// Bearer 用 MobileStarter 签发的 entitlement JWT（Pro 权益），非 session token。
+let bearerReader: () => Promise<string | null> = getEntitlementToken;
 
 export function setInstallIdReader(r: () => Promise<string>) { installIdReader = r; }
-export function setTokenReader(r: () => Promise<string | null>) { tokenReader = r; }
+export function setBearerReader(r: () => Promise<string | null>) { bearerReader = r; }
 
 async function authHeaders(): Promise<Record<string, string>> {
   const installId = await installIdReader();
-  const token = await tokenReader();
+  const token = await bearerReader();
   const h: Record<string, string> = { 'x-install-id': installId };
   if (token) h['authorization'] = `Bearer ${token}`;
   return h;
