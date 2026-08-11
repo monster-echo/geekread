@@ -39,7 +39,9 @@ export type AppRoute =
   | 'settings.about'
   | 'settings.deleteAccount'
   | 'notifications.center'
-  | 'states.gallery';
+  | 'states.gallery'
+  | 'geekreader.home'
+  | 'geekreader.story';
 
 export type RouteEntry = Readonly<{
   key: string;

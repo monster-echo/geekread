@@ -13,6 +13,7 @@ const routeNames = new Set<AppRoute>([
   'settings.storage', 'settings.permissions', 'settings.helpFeedback',
   'settings.legal', 'settings.privacyPolicy', 'settings.termsOfService',
   'settings.about', 'notifications.center', 'support.newTicket',
+  'geekreader.home', 'geekreader.story',
 ]);
 
 export function useEntryIntents(

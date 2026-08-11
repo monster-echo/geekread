@@ -12,6 +12,7 @@ import { usePreferences } from './src/preferences/PreferencesProvider';
 import { useApp } from './src/state/AppStore';
 import { useEntryIntents } from './src/navigation/useEntryIntents';
 import { setPlatformHeader } from './src/data/runtimePlatform';
+import { GeekReaderProvider } from './src/features/geek-reader/state/GeekReaderProvider';
 
 // 在生产 App 入口注入平台标识，apiClient 通过 getPlatformHeader() 在请求时读取，
 // 使 HTTP 层不依赖 react-native 模块（node 可测试）。
@@ -44,7 +45,9 @@ function AppSurface() {
   useEntryIntents(openEntryRoute, resume);
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
-      <AppRouter />
+      <GeekReaderProvider>
+        <AppRouter />
+      </GeekReaderProvider>
     </SafeAreaView>
   );
 }
