@@ -277,3 +277,28 @@ ArkTS 与 RN **无法共享运行时代码**。策略：**共享契约 + 各自�
 7. Pro 订阅 + entitlement JWT 桥接闭环。
 8. 配额、举报、设置/法律/注销完善。
 9. 两端验收 + 后端部署。
+
+---
+
+## 17. 最终验证（2026-08-12，Plan 1–4 完成后）
+
+**已通过（自动化）**
+- ✅ 后端 `backend/`：31 vitest 单测全过；`tsc --noEmit` 干净；`/api/translate` 端到端 200（配额 reserve/rollback、entitlement 路径、400 校验）。
+- ✅ RN `react-native/`：geek-reader 26 vitest 单测全过（models/locale/comments/translationCache/GeekReaderApiClient/entitlement）；**全项目** `tsc --noEmit` 干净（含接线改动）。
+- ✅ 共享契约 `shared/`：codegen 确定性复生成无 diff。
+
+**已通过（人工/架构）**
+- ✅ 架构边界：MobileStarter `server/` 零极客译读业务代码；极客译读后端独立 Next.js；entitlement 签发（MobileStarter）↔ 验签（geekread 后端）两侧 payload 格式与密钥对齐。
+- ✅ 法律文档：privacy/terms/EULA 落到 `docs/legal/`（多平台 IAP）。
+- ✅ ArkTS 模块结构：9 个 `.ets`（domain/application×3/data×2/components/pages×2）+ 接线（AppRoute/AppStore/Index/HomePage），import 解析、遵循壳惯例（NotificationPage/ApiTransport 模式），已规避 ArkTS iterator 协议限制。
+
+**待办（部署/设备相关，非代码缺陷）**
+- ⚠️ 后端 HN 代理：本机直连 `hacker-news.firebaseio.com` 超时（需代理或部署在可达区域）；HN/SWR 逻辑由单测覆盖，Plan 1 在网络可达时已端到端冒烟过。生产建议在受限网络用 undici `ProxyAgent` 或部署在可达节点。
+- ⚠️ ArkTS 真机/模拟器：需 DevEco Studio 跑 `hvigorw assembleHap` + ArkTSCheck + 真机渲染验证（本环境无 GUI/设备）。
+- ⚠️ 真实 LLM：配 `MODEL_API_URL/KEY/NAME` 后 `/api/translate` 完整译文闭环（model.ts 单测已 mock 覆盖）。
+- ⚠️ MobileStarter `server/` 依赖未本地安装，其 `tsc` 在 CI/装依赖后跑（entitlement 端点逐行仿 `membership/current`）。
+- v2：搜索（Algolia）/ 离线+历史 / 外链网页沉浸翻译 / 推送 / 内容举报（PG 表）。
+
+**仓库状态**
+- `geekread/`（main）：Plan 1–4 全部合并，commit 历史清晰（每 plan 独立分支 + merge）。
+- `MobileStarter/`（`feat/entitlement-signing` 分支，未合）：entitlement 签发端点 + .env，待用户决定合并。
