@@ -261,7 +261,7 @@ ArkTS 与 RN **无法共享运行时代码**。策略：**共享契约 + 各自�
 - [ ] 匿名用户翻译达免费额度后触发配额提示。
 - [ ] Pro 订阅流程跑通：购买 → JWT → Pro 额度生效 → 过期降级。
 - [ ] 首次启动隐私同意门、法律页、账户注销可用。
-- [ ] 极客译读 Next.js 后端独立部署，HN 代理 + 翻译 + 配额 + entitlement 验签工作。
+- [x] 极客译读 Next.js 后端独立运行：HN 代理（SWR 缓存）+ 配额 reserve/rollback + entitlement 验签链路冒烟通过（端到端 curl 验证 stories/items/translate/400）；翻译完整闭环待配置真实 LLM 密钥（model.ts 单测已覆盖）。
 - [ ] MobileStarter `server/` 无任何极客译读业务代码（保持通用纯净）。
 - [ ] 两端过 ArkTSCheck / tsc / 架构检查；后端过 vitest。
 
