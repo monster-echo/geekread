@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GeekRead API",
+  "definitions": {
+    "StoryType": { "type": "string", "enum": ["top", "latest"] },
+    "StoriesResponse": {
+      "type": "object",
+      "required": ["ids", "cached", "stale"],
+      "properties": {
+        "ids": { "type": "array", "items": { "type": "integer" } },
+        "cached": { "type": "boolean" },
+        "stale": { "type": "boolean" }
+      }
+    },
+    "ItemsRequest": {
+      "type": "object", "required": ["ids"],
+      "properties": { "ids": { "type": "array", "items": { "type": "integer" }, "minItems": 1, "maxItems": 100 } }
+    },
+    "HNItem": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "type": { "type": "string" },
+        "by": { "type": "string" },
+        "time": { "type": "integer" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "text": { "type": "string" },
+        "score": { "type": "integer" },
+        "descendants": { "type": "integer" },
+        "kids": { "type": "array", "items": { "type": "integer" } },
+        "parent": { "type": "integer" },
+        "parts": { "type": "array", "items": { "type": "integer" } },
+        "deleted": { "type": "boolean" },
+        "dead": { "type": "boolean" }
+      }
+    },
+    "ItemsResponse": {
+      "type": "object", "required": ["items", "cached", "stale"],
+      "properties": {
+        "items": { "type": "array", "items": { "oneOf": [{ "$ref": "#/definitions/HNItem" }, { "type": "null" }] } },
+        "cached": { "type": "boolean" },
+        "stale": { "type": "boolean" }
+      }
+    },
+    "TargetLanguage": { "type": "string", "enum": ["en", "ja", "ko", "zh-Hans", "zh-Hant"] },
+    "TranslateEntry": {
+      "type": "object", "required": ["key", "text"],
+      "properties": { "key": { "type": "string", "maxLength": 256 }, "text": { "type": "string", "maxLength": 12000 } }
+    },
+    "TranslateRequest": {
+      "type": "object", "required": ["targetLanguage", "entries"],
+      "properties": {
+        "targetLanguage": { "$ref": "#/definitions/TargetLanguage" },
+        "entries": { "type": "array", "items": { "$ref": "#/definitions/TranslateEntry" }, "minItems": 1, "maxItems": 20 }
+      }
+    },
+    "TranslateResult": {
+      "type": "object", "required": ["key"],
+      "properties": {
+        "key": { "type": "string" },
+        "translation": { "type": "string" },
+        "cached": { "type": "boolean" },
+        "error": { "type": "string" }
+      }
+    },
+    "TranslateResponse": {
+      "type": "object", "required": ["results"],
+      "properties": {
+        "results": { "type": "array", "items": { "$ref": "#/definitions/TranslateResult" } },
+        "remainingTranslations": { "type": "integer" },
+        "error": { "type": "string" }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object", "required": ["error"],
+      "properties": { "error": { "type": "string" } }
+    }
+  }
+}
