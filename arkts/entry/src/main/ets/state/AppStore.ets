@@ -152,7 +152,8 @@ export class AppStore {
   private applyPreferences(): void {
     if (this.context === null) return
     const theme = localStore.readTheme()
-    const language = localStore.readLanguage() === 'en-US' ? 'en-US' : 'zh-CN'
+    // 语言开放集：原样读取（zh-CN/en-US/ms-MY/ar-SA 等），不强制回退。
+    const language = localStore.readLanguage()
     const textScale = Math.min(1.3, Math.max(0.9, localStore.readTextScale()))
     const display = localStore.readTranslationDisplay()
     this.theme = theme
