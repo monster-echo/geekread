@@ -109,6 +109,12 @@ struct Index {
       NavDestination() { SessionsPage({ store: this.store, remote: this.store.remote }) }.title('登录设备管理').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Membership}`) {
       NavDestination() { MembershipPage({ store: this.store }) }.title('会员中心').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.MembershipPlans}`) {
+      NavDestination() { MembershipPage({ store: this.store }) }.title('方案对比').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Checkout}`) {
+      NavDestination() { CheckoutPage({ store: this.store }) }.title('订阅确认').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Orders}`) {
+      NavDestination() { OrdersPage({ store: this.store, remote: this.store.remote }) }.title('订单记录').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Profile}`) {
       NavDestination() { ProfilePage({ store: this.store }) }.title('我的').hideTitleBar(false)
     } else {
