@@ -20,6 +20,7 @@ export struct GeekReaderPage {
   @State errorMessage: string = ''
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
+  @State headerVisible: boolean = true
 
   aboutToAppear(): void {
     this.load(this.tab)
@@ -111,7 +112,7 @@ export struct GeekReaderPage {
     SideBarContainer() {
       this.DrawerMenu()
       Column() {
-        // 顶栏：汉堡 + 标题
+        // 顶栏：汉堡 + 标题（向上滚收起，向下滚展开）
         Row() {
           Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
             .width(48).height(48).justifyContent(FlexAlign.Center)
@@ -119,8 +120,11 @@ export struct GeekReaderPage {
           Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
             .layoutWeight(1).textAlign(TextAlign.Center)
           Blank().width(48)
-        }.width('100%').height(56).padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
-        .border({ width: { bottom: 1 }, color: AppColors.border })
+        }.width('100%').height(this.headerVisible ? 56 : 0)
+        .padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
+        .border({ width: { bottom: this.headerVisible ? 1 : 0 }, color: AppColors.border })
+        .clip(true)
+        .animation({ duration: 220, curve: Curve.EaseOut })
 
         // Tab
         Row() {
@@ -156,6 +160,10 @@ export struct GeekReaderPage {
                 ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
               }, (s: Story) => `${s.id}`)
             }
+            .onScroll((offset: number, state: ScrollState) => {
+              if (offset > 1) this.headerVisible = false
+              else if (offset < -1) this.headerVisible = true
+            })
           }.onRefreshing(() => this.refresh()).layoutWeight(1)
         }
       }.width('100%').height('100%')
