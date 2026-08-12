@@ -112,15 +112,17 @@ export struct GeekReaderPage {
 
   @Builder
   ListFooter(type: string) {
-    if (this.loadingMore) {
-      Row({ space: AppSpacing.x2 }) {
-        LoadingProgress().width(20).height(20).color(AppColors.brand)
-        Text('加载中…').fontSize(12).fontColor(AppColors.textSecondary)
-      }.width('100%').height(48).justifyContent(FlexAlign.Center)
-    } else if (this.isNoMore(type)) {
-      Text('没有更多了').fontSize(12).fontColor(AppColors.textSecondary)
-        .width('100%').height(48).textAlign(TextAlign.Center)
-    }
+    // 始终占位 48px，作为列表末尾的底部安全间距（只在滚到底时可见，不常驻空白）。
+    Row() {
+      if (this.loadingMore) {
+        Row({ space: AppSpacing.x2 }) {
+          LoadingProgress().width(20).height(20).color(AppColors.brand)
+          Text('加载中…').fontSize(12).fontColor(AppColors.textSecondary)
+        }
+      } else if (this.isNoMore(type)) {
+        Text('没有更多了').fontSize(12).fontColor(AppColors.textSecondary)
+      }
+    }.width('100%').height(48).justifyContent(FlexAlign.Center)
   }
 
   @Builder
@@ -243,7 +245,7 @@ export struct GeekReaderPage {
           .barMode(BarMode.Fixed)
           .scrollable(true)
           .layoutWeight(1).width('100%')
-        }.width('100%').height('100%').padding({ bottom: 64 })
+        }.width('100%').height('100%')
       }
       .navDestination(this.DetailDest)
       .hideTitleBar(true)
