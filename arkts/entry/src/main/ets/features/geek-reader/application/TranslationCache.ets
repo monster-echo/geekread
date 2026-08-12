@@ -48,7 +48,8 @@ async function flush(): Promise<void> {
   const batch: Pending[] = pending
   pending = []
   if (batch.length === 0) return
-  const lang: TargetLanguage = batch[0].lang
+  let lang: TargetLanguage = batch[0].lang
+  if (!lang) lang = 'zh-Hans' // 兜底：lang 丢失时用简体中文
   for (let start = 0; start < batch.length; start += MAX_ENTRIES) {
     const end: number = Math.min(start + MAX_ENTRIES, batch.length)
     const entries: TranslateEntry[] = []
