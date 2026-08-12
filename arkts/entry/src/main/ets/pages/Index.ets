@@ -72,27 +72,27 @@ struct Index {
       NavDestination() { HomePage({ store: this.store }) }.hideTitleBar(true)
       NavDestination() { GeekReaderPage({ store: this.store }) }.hideTitleBar(true)
     } else if (name === `route_${AppRoute.GeekReaderDetail}`) {
-      NavDestination() { StoryDetailPage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { StoryDetailPage({ store: this.store }) }.title('文章').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Settings}`) {
-      NavDestination() { SettingsPage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { SettingsPage({ store: this.store }) }.title('设置').hideTitleBar(false)
     } else if (name === `route_${AppRoute.About}`) {
-      NavDestination() { AboutPage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { AboutPage({ store: this.store }) }.title('关于与版本').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Legal}`) {
-      NavDestination() { LegalPage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { LegalPage({ store: this.store }) }.title('协议与政策').hideTitleBar(false)
     } else if (name === `route_${AppRoute.PrivacyPolicy}`) {
-      NavDestination() { LegalDocumentPage({ store: this.store, type: 'privacy' }) }.hideTitleBar(true)
+      NavDestination() { LegalDocumentPage({ store: this.store, type: 'privacy' }) }.title('隐私政策').hideTitleBar(false)
     } else if (name === `route_${AppRoute.TermsOfService}`) {
-      NavDestination() { LegalDocumentPage({ store: this.store, type: 'terms' }) }.hideTitleBar(true)
+      NavDestination() { LegalDocumentPage({ store: this.store, type: 'terms' }) }.title('用户协议').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.Language}` || name === `route_${AppRoute.TextSize}`) {
-      NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+      NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Storage}` || name === `route_${AppRoute.Permissions}`) {
-      NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+      NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.SignIn}` || name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
-      NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.hideTitleBar(true)
+      NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.title(this.authTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Profile}`) {
-      NavDestination() { ProfilePage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { ProfilePage({ store: this.store }) }.title('我的').hideTitleBar(false)
     } else {
-      NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+      NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     }
   }
 
@@ -103,6 +103,26 @@ struct Index {
     if (this.store.route === AppRoute.VerifyEmail) return AuthMode.Verify
     if (this.store.route === AppRoute.ResetPassword) return AuthMode.Reset
     return AuthMode.SignIn
+  }
+
+  private choiceTitle(): string {
+    const r = this.store.route
+    if (r === AppRoute.Appearance) return '外观主题'
+    if (r === AppRoute.Language) return '语言'
+    if (r === AppRoute.TextSize) return '字体大小'
+    if (r === AppRoute.Storage) return '存储与缓存'
+    if (r === AppRoute.Permissions) return '权限管理'
+    return '设置'
+  }
+
+  private authTitle(): string {
+    const r = this.store.route
+    if (r === AppRoute.SignUp) return '创建账号'
+    if (r === AppRoute.PhoneSignIn) return '手机号登录'
+    if (r === AppRoute.ForgotPassword) return '找回密码'
+    if (r === AppRoute.VerifyEmail) return '验证邮箱'
+    if (r === AppRoute.ResetPassword) return '重置密码'
+    return '登录'
   }
 }
 

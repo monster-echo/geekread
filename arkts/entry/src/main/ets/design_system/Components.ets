@@ -55,28 +55,12 @@ export struct PageHeader {
   @ObjectLink store: AppStore
   @Prop title: string
 
+  // 统一用 NavDestination 系统标题栏：此处不再自绘标题栏（避免重复）。
+  // 各壳页作为 NavDestination 由 Index 的 RouteDest 提供 .title()。
   build() {
     Row() {
-      if (this.store.canGoBack) {
-        AppIconButton({
-          label: appString(AppString.Back, this.store.language),
-          icon: AppIconName.ArrowLeft,
-          onTap: () => this.store.back()
-        })
-      } else {
-        Blank().width(48)
-      }
-      Text(this.title)
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(AppColors.text)
-        .layoutWeight(1)
-        .textAlign(TextAlign.Center)
-      Blank().width(48)
-    }
-    .height(58)
-    .width('100%')
-    .border({ width: { bottom: 1 }, color: AppColors.border })
+      // 空标题栏占位（NavDestination 系统标题栏替代）
+    }.height(0).width('100%')
   }
 }
 
