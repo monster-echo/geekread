@@ -49,12 +49,60 @@ struct Index {
 
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
-      RouteHost({ store: this.store })
+      Navigation(this.store.pathStack) {
+        // 根内容 = 启动页：goHome 后 replaceAll(GeekReader) 清栈压入阅读器。
+        SplashPage({ store: this.store })
+      }
+      .mode(NavigationMode.Stack)
+      .navDestination(this.RouteDest)
+      .hideTitleBar(true)
+      .width('100%').height('100%')
       if (this.store.toastMessage.length > 0) {
         ToastHost({ store: this.store })
       }
     }
     .width('100%').height('100%').backgroundColor(AppColors.background)
+  }
+
+  @Builder
+  RouteDest(name: string, param: object) {
+    if (name === `route_${AppRoute.GeekReader}`) {
+      NavDestination() { GeekReaderPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Home}`) {
+      NavDestination() { HomePage({ store: this.store }) }.hideTitleBar(true)
+      NavDestination() { GeekReaderPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.GeekReaderDetail}`) {
+      NavDestination() { StoryDetailPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Settings}`) {
+      NavDestination() { SettingsPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.About}`) {
+      NavDestination() { AboutPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Legal}`) {
+      NavDestination() { LegalPage({ store: this.store }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.PrivacyPolicy}`) {
+      NavDestination() { LegalDocumentPage({ store: this.store, type: 'privacy' }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.TermsOfService}`) {
+      NavDestination() { LegalDocumentPage({ store: this.store, type: 'terms' }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.Language}` || name === `route_${AppRoute.TextSize}`) {
+      NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Storage}` || name === `route_${AppRoute.Permissions}`) {
+      NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.SignIn}` || name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
+      NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.hideTitleBar(true)
+    } else if (name === `route_${AppRoute.Profile}`) {
+      NavDestination() { ProfilePage({ store: this.store }) }.hideTitleBar(true)
+    } else {
+      NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.hideTitleBar(true)
+    }
+  }
+
+  private authMode(): AuthMode {
+    if (this.store.route === AppRoute.SignUp) return AuthMode.SignUp
+    if (this.store.route === AppRoute.PhoneSignIn) return AuthMode.Phone
+    if (this.store.route === AppRoute.ForgotPassword) return AuthMode.Forgot
+    if (this.store.route === AppRoute.VerifyEmail) return AuthMode.Verify
+    if (this.store.route === AppRoute.ResetPassword) return AuthMode.Reset
+    return AuthMode.SignIn
   }
 }
 

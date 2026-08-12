@@ -56,6 +56,8 @@ export class AppStore {
   }
 
   routeStack: AppRoute[] = [AppRoute.Logo]
+  // 根 Navigation 的路径栈：唯一导航容器（Index 的 Navigation 持有）。
+  pathStack: NavPathStack = new NavPathStack()
   signedIn: boolean = false
   online: boolean = true
   // bootstrapped：初始 bootstrap 是否完成（成功或失败）；品牌闪屏据此判断"配置拉取完成"。
@@ -175,7 +177,8 @@ export class AppStore {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
     if (decision.unavailable) this.showToast('当前 App 未启用此功能')
-    this.routeStack = [...this.routeStack, decision.route]
+    // 根 Navigation：压栈，源页面保留。
+    this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
   }
 
@@ -201,10 +204,10 @@ export class AppStore {
     if (decision.pending !== null) this.pendingRoute = decision.pending
     if (decision.unavailable) this.showToast('当前 App 未启用此功能')
     if (cold) {
-      this.routeStack = decision.route === AppRoute.Home ?
-        [AppRoute.Home] : [AppRoute.Home, decision.route]
+      this.pathStack.clear()
+      this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     } else if (this.route !== decision.route) {
-      this.routeStack = [...this.routeStack, decision.route]
+      this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     }
     telemetry.screen(decision.route.toString())
   }
@@ -216,17 +219,16 @@ export class AppStore {
   replaceAll(route: AppRoute): void {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
-    this.routeStack = [decision.route]
+    this.pathStack.clear()
+    this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
   }
 
   replaceTop(route: AppRoute): void {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
-    this.routeStack = [
-      ...this.routeStack.slice(0, this.routeStack.length - 1),
-      decision.route
-    ]
+    this.pathStack.pop()
+    this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
   }
 
@@ -237,11 +239,7 @@ export class AppStore {
   }
 
   back(): void {
-    if (!this.canGoBack) {
-      return
-    }
-    this.routeStack = this.routeStack.slice(0, this.routeStack.length - 1)
-    telemetry.screen(this.route.toString())
+    this.pathStack.pop()
   }
 
   async signIn(email: string, password: string): Promise<boolean> {
