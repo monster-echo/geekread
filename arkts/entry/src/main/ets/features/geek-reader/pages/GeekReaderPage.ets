@@ -15,8 +15,11 @@ export struct GeekReaderPage {
   @ObjectLink store: AppStore
   @State topStories: Story[] = []
   @State topStatus: AsyncStatus = AsyncStatus.Idle
+  @State topIds: number[] = []
   @State latestStories: Story[] = []
   @State latestStatus: AsyncStatus = AsyncStatus.Idle
+  @State latestIds: number[] = []
+  @State loadingMore: boolean = false
   @State activeTab: number = 0
   @State errorMessage: string = ''
   @State headerVisible: boolean = true
@@ -34,6 +37,7 @@ export struct GeekReaderPage {
     this.setStatus(type, AsyncStatus.Loading)
     try {
       const ids = await fetchStories(type)
+      if (type === 'top') this.topIds = ids.ids; else this.latestIds = ids.ids
       const result = await fetchStoriesResolved(ids.ids.slice(0, PAGE))
       this.putStories(type, result)
       this.setStatus(type, result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success)
@@ -42,6 +46,23 @@ export struct GeekReaderPage {
       this.setStatus(type, AsyncStatus.Error)
     } finally {
       this.refreshing = false
+    }
+  }
+
+  private async loadMore(type: string): Promise<void> {
+    if (this.loadingMore) return
+    const ids = type === 'top' ? this.topIds : this.latestIds
+    const stories = type === 'top' ? this.topStories : this.latestStories
+    if (ids.length === 0 || stories.length >= ids.length) return
+    this.loadingMore = true
+    try {
+      const next = ids.slice(stories.length, stories.length + PAGE)
+      const result = await fetchStoriesResolved(next)
+      this.putStories(type, stories.concat(result))
+    } catch (e) {
+      // 静默：下一页失败不打断阅读
+    } finally {
+      this.loadingMore = false
     }
   }
 
@@ -170,6 +191,8 @@ export struct GeekReaderPage {
                     }, (s: Story) => `${s.id}`)
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+                  .onReachEnd(() => this.loadMore('top'))
+                  .padding({ bottom: AppSpacing.x8 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
@@ -185,6 +208,8 @@ export struct GeekReaderPage {
                     }, (s: Story) => `${s.id}`)
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+                  .onReachEnd(() => this.loadMore('latest'))
+                  .padding({ bottom: AppSpacing.x8 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
