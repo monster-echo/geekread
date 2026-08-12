@@ -1,4 +1,5 @@
 import { AppStore } from '../../../state/AppStore'
+import { appString, AppString } from '../../../localization/AppStrings'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { fetchItems } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
@@ -80,24 +81,24 @@ export struct StoryDetailPage {
           Column() { LoadingProgress().width(40).height(40).color(AppColors.brand) }
             .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
         } else if (this.story === null) {
-          Column() { Text('未找到文章').fontColor(AppColors.textSecondary) }
+          Column() { Text(appString(AppString.NoContent, this.store.language)).fontColor(AppColors.textSecondary) }
             .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
         } else {
           Scroll() {
             Column({ space: AppSpacing.x3 }) {
               ImmersiveTranslation({ text: this.story.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
               if (this.story.url !== undefined && this.story.url.length > 0) {
-                Text('阅读原文 ↗').fontColor(AppColors.brand).fontSize(14)
+                Text(appString(AppString.ReadOriginal, this.store.language)).fontColor(AppColors.brand).fontSize(14)
               } else if (this.story.text !== undefined && this.story.text.length > 0) {
                 ImmersiveTranslation({ text: this.story.text, locale: this.store.language, displayMode: this.store.translationDisplayMode })
               }
-              Text(`${this.story.score} 分 · ${this.story.by} · ${this.story.commentsCount} 评论`)
+              Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
 
               ForEach(this.buildFlat(), (fc: FlatComment) => {
                 Column({ space: AppSpacing.x1 }) {
                   if (fc.node.deleted || fc.node.dead) {
-                    Text('[已删除]').fontSize(12).fontColor(AppColors.textSecondary)
+                    Text(appString(AppString.Deleted, this.store.language)).fontSize(12).fontColor(AppColors.textSecondary)
                   } else {
                     Text(`${fc.node.by} · ${timeAgo(fc.node.time)}` +
                       (fc.node.replies.length > 0 ? ` · ${this.collapsed.includes(fc.node.id) ? '+' : '−'}${fc.node.replies.length}` : ''))
@@ -117,7 +118,7 @@ export struct StoryDetailPage {
         }
       }.width('100%').height('100%')
     }
-    .title(this.story?.title ?? '文章')
+    .title(this.story?.title ?? appString(AppString.Article, this.store.language))
     .hideTitleBar(false)
     .mode(NavDestinationMode.STANDARD)
   }

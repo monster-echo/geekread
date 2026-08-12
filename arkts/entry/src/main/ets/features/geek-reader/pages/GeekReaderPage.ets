@@ -3,7 +3,7 @@ import { AppStore } from '../../../state/AppStore'
 import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
-import { localized } from '../../../localization/AppStrings'
+import { localized, appString, AppString } from '../../../localization/AppStrings'
 import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
@@ -87,7 +87,7 @@ export struct GeekReaderPage {
     const type = this.activeTab === 0 ? 'top' : 'latest'
     this.load(type).then(() => {
       const ok = (type === 'top' ? this.topStatus : this.latestStatus) === AsyncStatus.Success
-      this.store.showToast(ok ? '已刷新' : '刷新失败', !ok)
+      this.store.showToast(ok ? appString(AppString.RefreshSuccess, this.store.language) : appString(AppString.RefreshFail, this.store.language), !ok)
     })
   }
 
@@ -118,10 +118,10 @@ export struct GeekReaderPage {
       if (this.loadingMore) {
         Row({ space: AppSpacing.x2 }) {
           LoadingProgress().width(20).height(20).color(AppColors.brand)
-          Text('加载中…').fontSize(12).fontColor(AppColors.textSecondary)
+          Text(appString(AppString.LoadingMore, this.store.language)).fontSize(12).fontColor(AppColors.textSecondary)
         }
       } else if (this.isNoMore(type)) {
-        Text('没有更多了').fontSize(12).fontColor(AppColors.textSecondary)
+        Text(appString(AppString.NoMore, this.store.language)).fontSize(12).fontColor(AppColors.textSecondary)
       }
     }.width('100%').height(48).justifyContent(FlexAlign.Center)
   }
@@ -130,16 +130,16 @@ export struct GeekReaderPage {
   DrawerMenu() {
     Column() {
       Column({ space: AppSpacing.x1 }) {
-        Text(this.store.signedIn ? (this.store.user?.displayName ?? '已登录') : '未登录')
+        Text(this.store.signedIn ? (this.store.user?.displayName ?? appString(AppString.NotLoggedIn, this.store.language)) : appString(AppString.NotLoggedIn, this.store.language))
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
-        Text(this.store.signedIn ? '' : '点击登录').fontSize(12).fontColor(AppColors.brand)
+        Text(this.store.signedIn ? '' : appString(AppString.Login, this.store.language)).fontSize(12).fontColor(AppColors.brand)
       }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
       .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
-      this.MenuRow(localized('设置', 'Settings', this.store.language), 'settings.home')
-      this.MenuRow(localized('关于与版本', 'About', this.store.language), 'settings.about')
-      this.MenuRow(localized('协议与政策', 'Legal', this.store.language), 'settings.legal')
+      this.MenuRow(appString(AppString.Settings, this.store.language), 'settings.home')
+      this.MenuRow(appString(AppString.About, this.store.language), 'settings.about')
+      this.MenuRow(appString(AppString.Legal, this.store.language), 'settings.legal')
       Blank()
-      Text('GeekRead · 极客译读').fontSize(11).fontColor(AppColors.textSecondary).padding(AppSpacing.x5)
+      Text('GeekRead · ' + appString(AppString.GeekReaderTitle, this.store.language)).fontSize(11).fontColor(AppColors.textSecondary).padding(AppSpacing.x5)
     }.width('100%').height('100%').backgroundColor(AppColors.surface).alignItems(HorizontalAlign.Start)
   }
 
@@ -154,7 +154,7 @@ export struct GeekReaderPage {
   StoryItem(s: Story) {
     Column({ space: AppSpacing.x1 }) {
       ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
-      Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
+      Text(`${s.score}${appString(AppString.PointsComments, this.store.language)}${s.by} · ${s.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
         .fontSize(12).fontColor(AppColors.textSecondary)
     }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
     .border({ width: { bottom: 1 }, color: AppColors.border })
@@ -167,13 +167,13 @@ export struct GeekReaderPage {
         .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
     } else if (status === AsyncStatus.Empty) {
       Column({ space: AppSpacing.x3 }) {
-        Text('暂无内容，下拉刷新重试').fontColor(AppColors.textSecondary).fontSize(14)
+        Text(appString(AppString.NoContent, this.store.language)).fontColor(AppColors.textSecondary).fontSize(14)
       }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
     } else if (status === AsyncStatus.Error) {
       Column({ space: AppSpacing.x3 }) {
-        Text(`加载失败：${msg}`).fontColor(AppColors.textSecondary).fontSize(14)
+        Text(`${appString(AppString.LoadFailed, this.store.language)}：${msg}`).fontColor(AppColors.textSecondary).fontSize(14)
           .padding({ left: AppSpacing.x6, right: AppSpacing.x6 }).textAlign(TextAlign.Center)
-        Button('重试').onClick(() => this.refresh())
+        Button(appString(AppString.Retry, this.store.language)).onClick(() => this.refresh())
       }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
     }
   }
@@ -195,7 +195,7 @@ export struct GeekReaderPage {
             Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
               .width(48).height(48).justifyContent(FlexAlign.Center)
               .onClick(() => { this.vibrate(); this.drawerOpen = true })
-            Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+            Text(appString(AppString.GeekReaderTitle, this.store.language)).fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
               .layoutWeight(1).textAlign(TextAlign.Center)
             Blank().width(48)
           }.width('100%').height(this.headerVisible ? 56 : 0)
@@ -221,7 +221,7 @@ export struct GeekReaderPage {
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
               }
-            }.tabBar('精选')
+            }.tabBar(appString(AppString.TopStories, this.store.language))
 
             TabContent() {
               if (this.latestStatus === AsyncStatus.Success) {
@@ -240,7 +240,7 @@ export struct GeekReaderPage {
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
               }
-            }.tabBar('最新')
+            }.tabBar(appString(AppString.LatestStories, this.store.language))
           }
           .onChange((i: number) => { this.activeTab = i })
           .barMode(BarMode.Fixed)
