@@ -76,15 +76,19 @@ export struct ImmersiveTranslation {
         // 源语言（en 等）不译，只显原文
       } else if (this.showTranslation()) {
         if (this.displayMode === 'translation') {
-          // 只看译文：先显示原文（加载中），翻译完成后原地替换成译文。
+          // 只看译文：先显示原文（加载中），翻译完成后原地替换成译文；
+          // 失败时保留原文，下方显示失败提示。
           if (this.result.length > 0) {
             Text(this.result).fontSize(14).fontColor(AppColors.text).width('100%')
-          } else if (this.loading) {
-            Text(this.text).fontSize(15).fontColor(AppColors.textSecondary).opacity(0.7).width('100%')
-          } else if (this.failed) {
-            Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
           } else {
-            Text(this.text).fontSize(15).fontColor(AppColors.text).width('100%')
+            Column({ space: AppSpacing.x1 }) {
+              Text(this.text).fontSize(15).fontColor(AppColors.text).width('100%')
+              if (this.loading) {
+                LoadingProgress().width(18).height(18)
+              } else if (this.failed) {
+                Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
+              }
+            }.alignItems(HorizontalAlign.Start).width('100%')
           }
         } else {
           // 双语（both）：原文已在上方，下方显示译文。
