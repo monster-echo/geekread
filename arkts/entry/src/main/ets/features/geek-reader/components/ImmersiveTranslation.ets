@@ -19,6 +19,7 @@ export struct ImmersiveTranslation {
   @State result: string = ''
   @State loading: boolean = false
   @State failed: boolean = false
+  @State failedMsg: string = ''
 
   private get lang(): TargetLanguage | null {
     return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
@@ -34,11 +35,16 @@ export struct ImmersiveTranslation {
         if (typeof t === 'string' && t.length > 0 && t !== 'undefined') {
           this.result = t
         } else {
+          this.failedMsg = '译文为空'
           this.failed = true
         }
         this.loading = false
       })
-      .catch(() => { this.failed = true; this.loading = false })
+      .catch((e: object) => {
+        this.failedMsg = e instanceof Error ? e.message : String(e)
+        this.failed = true
+        this.loading = false
+      })
   }
 
   build() {
@@ -66,7 +72,7 @@ export struct ImmersiveTranslation {
         .padding({ left: AppSpacing.x2 })
         .width('100%')
       } else if (this.failed) {
-        Text('翻译失败（后端未配 LLM）').fontSize(11).fontColor(AppColors.textSecondary)
+        Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
       } else {
         Button(`译 · ${labelOf(this.lang)}`)
           .type(ButtonType.Normal)
