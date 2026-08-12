@@ -114,7 +114,9 @@ export struct ChoicePreferencePage {
 
   private options(): string[] {
     if (this.route === AppRoute.Appearance) return ['system', 'light', 'dark']
-    if (this.route === AppRoute.Language) return ['zh-CN', 'en-US']
+    if (this.route === AppRoute.Language) {
+      return ['zh-CN', 'zh-TW', 'en-US', 'ms-MY', 'id-ID', 'th-TH', 'vi-VN', 'ar-SA', 'ja-JP', 'ko-KR']
+    }
     if (this.route === AppRoute.TranslationDisplay) return ['original', 'both', 'translation']
     return ['0.9', '1', '1.15', '1.3']
   }
@@ -123,8 +125,16 @@ export struct ChoicePreferencePage {
     if (value === 'system') return appString(AppString.ThemeSystem, this.store.language)
     if (value === 'light') return appString(AppString.ThemeLight, this.store.language)
     if (value === 'dark') return appString(AppString.ThemeDark, this.store.language)
-    if (value === 'zh-CN') return appString(AppString.LanguageChinese, this.store.language)
-    if (value === 'en-US') return appString(AppString.LanguageEnglish, this.store.language)
+    if (value === 'zh-CN') return '简体中文'
+    if (value === 'zh-TW') return '繁體中文'
+    if (value === 'en-US') return 'English'
+    if (value === 'ms-MY') return 'Bahasa Melayu'
+    if (value === 'id-ID') return 'Bahasa Indonesia'
+    if (value === 'th-TH') return 'ไทย'
+    if (value === 'vi-VN') return 'Tiếng Việt'
+    if (value === 'ar-SA') return 'العربية'
+    if (value === 'ja-JP') return '日本語'
+    if (value === 'ko-KR') return '한국어'
     if (value === '0.9') return appString(AppString.TextSmall, this.store.language)
     if (value === '1') return appString(AppString.TextStandard, this.store.language)
     if (value === '1.15') return appString(AppString.TextLarge, this.store.language)

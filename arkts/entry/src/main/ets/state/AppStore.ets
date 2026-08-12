@@ -10,6 +10,7 @@ import { AppRoute } from '../navigation/AppRoute'
 import { telemetry, TelemetryConfig } from '../telemetry/Telemetry'
 import { AppTelemetrySink } from '../telemetry/AppTelemetrySink'
 import { guardRoute } from '../navigation/RouteGuard'
+import { initAppStrings } from '../localization/AppStrings'
 
 @Observed
 export class AppStore {
@@ -92,6 +93,7 @@ export class AppStore {
 
   async initialize(context: common.UIAbilityContext): Promise<void> {
     this.context = context
+    initAppStrings(context)
     await localStore.initialize(context)
     this.applyPreferences()
     apiClient.setInstallationId(localStore.installationId())
