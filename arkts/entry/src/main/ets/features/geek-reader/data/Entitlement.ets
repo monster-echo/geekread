@@ -1,5 +1,5 @@
 import http from '@ohos.net.http'
-import { localStore } from '../../data/LocalStore'
+import { localStore } from '../../../data/LocalStore'
 
 // MobileStarter server（共享通用后端）基址。ArkTS 无 env 系统，部署时改本常量。
 const MOBILE_STARTER_BASE: string = 'http://localhost:3210'
