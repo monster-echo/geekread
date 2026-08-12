@@ -53,14 +53,18 @@ export struct GeekReaderPage {
     if (this.loadingMore) return
     const ids = type === 'top' ? this.topIds : this.latestIds
     const stories = type === 'top' ? this.topStories : this.latestStories
-    if (ids.length === 0 || stories.length >= ids.length) return
+    if (ids.length === 0 || stories.length >= ids.length) {
+      this.store.showToast('没有更多了')
+      return
+    }
     this.loadingMore = true
+    this.store.showToast('加载更多…')
     try {
       const next = ids.slice(stories.length, stories.length + PAGE)
       const result = await fetchStoriesResolved(next)
       this.putStories(type, stories.concat(result))
     } catch (e) {
-      // 静默：下一页失败不打断阅读
+      this.store.showToast('加载失败', true)
     } finally {
       this.loadingMore = false
     }
@@ -192,7 +196,6 @@ export struct GeekReaderPage {
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
                   .onReachEnd(() => this.loadMore('top'))
-                  .padding({ bottom: 40 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
@@ -209,7 +212,6 @@ export struct GeekReaderPage {
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
                   .onReachEnd(() => this.loadMore('latest'))
-                  .padding({ bottom: 40 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
@@ -220,7 +222,7 @@ export struct GeekReaderPage {
           .barMode(BarMode.Fixed)
           .scrollable(true)
           .layoutWeight(1).width('100%')
-        }.width('100%').height('100%')
+        }.width('100%').height('100%').padding({ bottom: 64 })
       }
       .navDestination(this.DetailDest)
       .hideTitleBar(true)
