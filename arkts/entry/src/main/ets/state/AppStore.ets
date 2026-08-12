@@ -166,11 +166,20 @@ export class AppStore {
   }
 
   get route(): AppRoute {
+    const names: string[] = this.pathStack.getAllPathName()
+    if (names.length > 0) {
+      const last = names[names.length - 1]
+      const idx = last.indexOf('route_')
+      if (idx === 0) {
+        const v = Number(last.substring(6))
+        if (!Number.isNaN(v) && v >= 0) return v as AppRoute
+      }
+    }
     return this.routeStack[this.routeStack.length - 1]
   }
 
   get canGoBack(): boolean {
-    return this.routeStack.length > 1
+    return this.pathStack.getAllPathName().length > 1
   }
 
   navigate(route: AppRoute): void {
