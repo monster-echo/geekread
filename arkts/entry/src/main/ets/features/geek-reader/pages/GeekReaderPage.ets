@@ -11,50 +11,68 @@ import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 
 const PAGE: number = 20
 
+// 模块级缓存：从文章详情返回时不重新请求，直接还原列表数据。
+interface TabCache { stories: Story[]; status: AsyncStatus; loaded: boolean }
+function emptyTab(): TabCache {
+  const t: TabCache = { stories: [], status: AsyncStatus.Idle, loaded: false }
+  return t
+}
+const cache: Record<string, TabCache> = { top: emptyTab(), latest: emptyTab() }
+
 @Component
 export struct GeekReaderPage {
   @ObjectLink store: AppStore
-  @State stories: Story[] = []
-  @State status: AsyncStatus = AsyncStatus.Idle
-  @State tab: string = 'top'
+  @State topStories: Story[] = cache.top.stories
+  @State topStatus: AsyncStatus = cache.top.status
+  @State latestStories: Story[] = cache.latest.stories
+  @State latestStatus: AsyncStatus = cache.latest.status
+  @State activeTab: number = 0
   @State errorMessage: string = ''
+  @State headerVisible: boolean = true
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
-  @State headerVisible: boolean = true
 
   aboutToAppear(): void {
-    this.load(this.tab)
+    // 还原缓存；未加载过的 tab 才发请求。
+    if (!cache.top.loaded) this.load('top')
+    if (!cache.latest.loaded) this.load('latest')
   }
 
   private async load(type: string): Promise<void> {
-    this.status = AsyncStatus.Loading
+    this.setStatus(type, AsyncStatus.Loading)
     try {
       const ids = await fetchStories(type)
-      const slice = ids.ids.slice(0, PAGE)
-      const result = await fetchStoriesResolved(slice)
-      this.stories = result
-      this.status = result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success
+      const result = await fetchStoriesResolved(ids.ids.slice(0, PAGE))
+      this.putStories(type, result)
+      this.setStatus(type, result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success)
     } catch (e) {
       this.errorMessage = e instanceof Error ? e.message : '网络错误'
-      this.status = AsyncStatus.Error
+      this.setStatus(type, AsyncStatus.Error)
     } finally {
       this.refreshing = false
     }
   }
 
+  private setStatus(type: string, s: AsyncStatus): void {
+    cache[type].status = s
+    if (type === 'top') this.topStatus = s; else this.latestStatus = s
+  }
+
+  private putStories(type: string, arr: Story[]): void {
+    const prev: TabCache = cache[type]
+    const next: TabCache = { stories: arr, status: prev.status, loaded: true }
+    cache[type] = next
+    if (type === 'top') this.topStories = arr; else this.latestStories = arr
+  }
+
   private refresh(): void {
     this.refreshing = true
     this.vibrate()
-    this.load(this.tab).then(() => {
-      const ok = this.status === AsyncStatus.Success
+    const type = this.activeTab === 0 ? 'top' : 'latest'
+    this.load(type).then(() => {
+      const ok = (type === 'top' ? this.topStatus : this.latestStatus) === AsyncStatus.Success
       this.store.showToast(ok ? '已刷新' : '刷新失败', !ok)
     })
-  }
-
-  private switchTab(type: string): void {
-    if (this.tab === type) return
-    this.tab = type
-    this.load(type)
   }
 
   private vibrate(): void {
@@ -80,7 +98,6 @@ export struct GeekReaderPage {
         Text(this.store.signedIn ? '' : '点击登录').fontSize(12).fontColor(AppColors.brand)
       }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
       .onClick(() => this.goto(this.store.signedIn ? AppRoute.Profile : AppRoute.SignIn))
-
       this.MenuRow(localized('设置', 'Settings', this.store.language), AppRoute.Settings)
       this.MenuRow(localized('关于与版本', 'About', this.store.language), AppRoute.About)
       this.MenuRow(localized('协议与政策', 'Legal', this.store.language), AppRoute.Legal)
@@ -94,8 +111,7 @@ export struct GeekReaderPage {
     Row({ space: AppSpacing.x3 }) {
       Text(title).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
       AppIcon({ name: AppIconName.ChevronRight, iconSize: 18, color: AppColors.textSecondary })
-    }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 })
-    .onClick(() => this.goto(route))
+    }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 }).onClick(() => this.goto(route))
   }
 
   @Builder
@@ -106,6 +122,45 @@ export struct GeekReaderPage {
         .fontSize(12).fontColor(AppColors.textSecondary)
     }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
     .border({ width: { bottom: 1 }, color: AppColors.border })
+  }
+
+  @Builder
+  StatusView(status: AsyncStatus, msg: string) {
+    if (status === AsyncStatus.Loading) {
+      Column() { LoadingProgress().width(48).height(48).color(AppColors.brand) }
+        .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
+    } else if (status === AsyncStatus.Empty) {
+      Column({ space: AppSpacing.x3 }) {
+        AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+        Text('暂无内容，下拉刷新重试').fontColor(AppColors.textSecondary).fontSize(14)
+      }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
+    } else if (status === AsyncStatus.Error) {
+      Column({ space: AppSpacing.x3 }) {
+        AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+        Text(`加载失败：${msg}`).fontColor(AppColors.textSecondary).fontSize(14)
+          .padding({ left: AppSpacing.x6, right: AppSpacing.x6 }).textAlign(TextAlign.Center)
+        Button('重试').onClick(() => this.refresh())
+      }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
+    }
+  }
+
+  @Builder
+  TabList(stories: Story[], status: AsyncStatus, msg: string) {
+    if (status === AsyncStatus.Success) {
+      Refresh({ refreshing: $$this.refreshing }) {
+        List({ space: AppSpacing.x3 }) {
+          ForEach(stories, (s: Story) => {
+            ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+          }, (s: Story) => `${s.id}`)
+        }
+        .onScroll((offset: number, state: ScrollState) => {
+          if (offset > 1) this.headerVisible = false
+          else if (offset < -1) this.headerVisible = true
+        })
+      }.onRefreshing(() => this.refresh()).layoutWeight(1)
+    } else {
+      this.StatusView(status, msg)
+    }
   }
 
   build() {
@@ -123,49 +178,21 @@ export struct GeekReaderPage {
         }.width('100%').height(this.headerVisible ? 56 : 0)
         .padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
         .border({ width: { bottom: this.headerVisible ? 1 : 0 }, color: AppColors.border })
-        .clip(true)
-        .animation({ duration: 220, curve: Curve.EaseOut })
+        .clip(true).animation({ duration: 220, curve: Curve.EaseOut })
 
-        // Tab
-        Row() {
-          Text('精选').padding(AppSpacing.x4)
-            .fontColor(this.tab === 'top' ? AppColors.brand : AppColors.text)
-            .fontWeight(this.tab === 'top' ? FontWeight.Bold : FontWeight.Normal)
-            .onClick(() => this.switchTab('top'))
-          Text('最新').padding(AppSpacing.x4)
-            .fontColor(this.tab === 'latest' ? AppColors.brand : AppColors.text)
-            .fontWeight(this.tab === 'latest' ? FontWeight.Bold : FontWeight.Normal)
-            .onClick(() => this.switchTab('latest'))
-        }.width('100%')
-
-        if (this.status === AsyncStatus.Loading) {
-          Column() { LoadingProgress().width(48).height(48).color(AppColors.brand) }
-            .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
-        } else if (this.status === AsyncStatus.Empty) {
-          Column({ space: AppSpacing.x3 }) {
-            AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
-            Text('暂无内容，下拉刷新重试').fontColor(AppColors.textSecondary).fontSize(14)
-          }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
-        } else if (this.status === AsyncStatus.Error) {
-          Column({ space: AppSpacing.x3 }) {
-            AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
-            Text(`加载失败：${this.errorMessage}`).fontColor(AppColors.textSecondary).fontSize(14)
-              .padding({ left: AppSpacing.x6, right: AppSpacing.x6 }).textAlign(TextAlign.Center)
-            Button('重试').onClick(() => this.refresh())
-          }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
-        } else {
-          Refresh({ refreshing: $$this.refreshing }) {
-            List({ space: AppSpacing.x3 }) {
-              ForEach(this.stories, (s: Story) => {
-                ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
-              }, (s: Story) => `${s.id}`)
-            }
-            .onScroll((offset: number, state: ScrollState) => {
-              if (offset > 1) this.headerVisible = false
-              else if (offset < -1) this.headerVisible = true
-            })
-          }.onRefreshing(() => this.refresh()).layoutWeight(1)
+        // 原生 Tabs：左右滑动切换 精选/最新
+        Tabs({ barPosition: BarPosition.Start, index: this.activeTab }) {
+          TabContent() {
+            this.TabList(this.topStories, this.topStatus, this.errorMessage)
+          }.tabBar('精选')
+          TabContent() {
+            this.TabList(this.latestStories, this.latestStatus, this.errorMessage)
+          }.tabBar('最新')
         }
+        .onChange((i: number) => { this.activeTab = i })
+        .barMode(BarMode.Fixed)
+        .scrollable(true)
+        .layoutWeight(1).width('100%')
       }.width('100%').height('100%')
     }
     .showSideBar(this.drawerOpen)
