@@ -1,7 +1,9 @@
+import vibrator from '@ohos.vibrator'
 import { AppStore } from '../../../state/AppStore'
 import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { PageHeader } from '../../../design_system/Components'
+import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
 import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
 import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
@@ -50,7 +52,19 @@ export struct GeekReaderPage {
 
   private refresh(): void {
     this.refreshing = true
-    this.load(this.tab)
+    this.vibrate()
+    this.load(this.tab).then(() => {
+      const ok = this.currentStatus === AsyncStatus.Success
+      this.store.showToast(ok ? '已刷新' : '刷新失败', !ok)
+    })
+  }
+
+  private vibrate(): void {
+    try {
+      vibrator.startVibration({ type: 'time', duration: 18 }, { id: 0, usage: 'notification' })
+    } catch (e) {
+      // 无震动权限或硬件不支持时忽略
+    }
   }
 
   private get currentStories(): Story[] {
@@ -76,6 +90,26 @@ export struct GeekReaderPage {
     .alignItems(HorizontalAlign.Start)
     .padding(AppSpacing.x4)
     .border({ width: { bottom: 1 }, color: AppColors.border })
+  }
+
+  @Builder
+  EmptyState(message: string) {
+    Column({ space: AppSpacing.x3 }) {
+      AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+      Text(message)
+        .fontColor(AppColors.textSecondary)
+        .fontSize(14)
+        .textAlign(TextAlign.Center)
+        .padding({ left: AppSpacing.x6, right: AppSpacing.x6 })
+      Text('后端：192.168.20.120:8787（手机需与 Mac 同一 WiFi）')
+        .fontColor(AppColors.border)
+        .fontSize(11)
+        .textAlign(TextAlign.Center)
+      Button('重试').onClick(() => this.refresh())
+    }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .layoutWeight(1)
   }
 
   build() {
@@ -105,15 +139,9 @@ export struct GeekReaderPage {
           }, (i: number) => `sk-${i}`)
         }.layoutWeight(1)
       } else if (this.currentStatus === AsyncStatus.Empty) {
-        Column({ space: AppSpacing.x3 }) {
-          Text('暂无内容').fontColor(AppColors.textSecondary)
-          Button('重试').onClick(() => this.refresh())
-        }.justifyContent(FlexAlign.Center).layoutWeight(1)
+        this.EmptyState('暂无内容，下拉刷新重试')
       } else if (this.currentStatus === AsyncStatus.Error) {
-        Column({ space: AppSpacing.x3 }) {
-          Text(this.errorMessage).fontColor(AppColors.textSecondary)
-          Button('重试').onClick(() => this.refresh())
-        }.justifyContent(FlexAlign.Center).layoutWeight(1)
+        this.EmptyState(`加载失败：${this.errorMessage}`)
       } else {
         Refresh({ refreshing: $$this.refreshing }) {
           List({ space: AppSpacing.x3 }) {
