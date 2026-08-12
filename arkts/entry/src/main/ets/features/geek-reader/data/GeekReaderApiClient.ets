@@ -1,5 +1,5 @@
 import http from '@ohos.net.http'
-import { localStore } from '../../data/LocalStore'
+import { localStore } from '../../../data/LocalStore'
 import { HNItem, Story, TargetLanguage } from '../domain/Models'
 import { toStory } from '../domain/Models'
 import { getEntitlementToken } from './Entitlement'
