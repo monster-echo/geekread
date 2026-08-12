@@ -11,12 +11,12 @@ import { BottomTabs } from './HomePage'
 export function formatPlanPrice(plan: BillingPlan): string {
   const period = planIntervalLabel(plan.interval)
   const amount = (plan.priceMinor / 100).toFixed(2)
-  return `${plan.currency} ${amount}/${period}`
+  return `¥${amount}/${period}`
 }
 
 function planIntervalLabel(interval: string): string {
-  if (interval === 'month') return '月'
-  if (interval === 'year') return '年'
+  if (interval === 'month' || interval === 'monthly') return '月'
+  if (interval === 'year' || interval === 'yearly') return '年'
   if (interval === 'lifetime') return '终身'
   if (interval === 'one_time') return '次'
   return interval
