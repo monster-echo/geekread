@@ -48,43 +48,30 @@ async function flush(): Promise<void> {
   const batch: Pending[] = pending
   pending = []
   if (batch.length === 0) return
-  const byLang = new Map<TargetLanguage, Pending[]>()
-  for (let i = 0; i < batch.length; i++) {
-    const p = batch[i]
-    const arr = byLang.get(p.lang) ?? []
-    arr.push(p)
-    byLang.set(p.lang, arr)
-  }
-  const langArr: TargetLanguage[] = []
-  byLang.forEach((_v: Pending[], lang: TargetLanguage) => { langArr.push(lang) })
-  for (let li = 0; li < langArr.length; li++) {
-    const lang = langArr[li]
-    const items = byLang.get(lang) ?? []
-    const chunks = chunkEntries(items, MAX_ENTRIES, MAX_TOTAL_CHARS)
-    for (let ci = 0; ci < chunks.length; ci++) {
-      const chunk = chunks[ci]
-      const entries: TranslateEntry[] = []
-      for (let ei = 0; ei < chunk.length; ei++) {
-        entries.push({ key: String(ei), text: chunk[ei].text })
+  const lang: TargetLanguage = batch[0].lang
+  for (let start = 0; start < batch.length; start += MAX_ENTRIES) {
+    const end: number = Math.min(start + MAX_ENTRIES, batch.length)
+    const entries: TranslateEntry[] = []
+    for (let i = start; i < end; i++) {
+      entries.push({ key: String(i - start), text: batch[i].text })
+    }
+    const req: TranslateRequest = { targetLanguage: lang, entries }
+    try {
+      const res: TranslateResponse = await translateBatch(req)
+      for (let pi = 0; pi < entries.length; pi++) {
+        const p = batch[start + pi]
+        const r = res.results[pi]
+        if (r !== undefined && r.translation !== undefined && r.translation.length > 0) {
+          cache.set(cacheKey(lang, p.text), r.translation)
+          p.resolve(r.translation)
+        } else {
+          p.reject(new Error(r?.error ?? 'translation_failed'))
+        }
       }
-      const req: TranslateRequest = { targetLanguage: lang, entries }
-      try {
-        const res: TranslateResponse = await translateBatch(req)
-        for (let pi = 0; pi < chunk.length; pi++) {
-          const p = chunk[pi]
-          const r = res.results[pi]
-          if (r !== undefined && r.translation !== undefined && r.translation.length > 0) {
-            cache.set(cacheKey(lang, p.text), r.translation)
-            p.resolve(r.translation)
-          } else {
-            p.reject(new Error(r?.error ?? 'translation_failed'))
-          }
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'translation_failed'
-        for (let pi = 0; pi < chunk.length; pi++) {
-          chunk[pi].reject(new Error(msg))
-        }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'translation_failed'
+      for (let pi = 0; pi < entries.length; pi++) {
+        batch[start + pi].reject(new Error(msg))
       }
     }
   }

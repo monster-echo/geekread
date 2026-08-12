@@ -13,7 +13,9 @@ type Result = { key: string; translation?: string; cached?: boolean; error?: str
 
 export async function POST(request: Request): Promise<Response> {
   const installId = request.headers.get('x-install-id');
+  console.log('[translate] x-install-id len=', installId?.length, 'auth?', request.headers.get('authorization') ? 'yes' : 'no');
   if (!installId || installId.trim().length === 0 || installId.length > 128) {
+    console.log('[translate] REJECT: installId missing/invalid');
     return errorResponse('invalid_request', 400);
   }
   const clientId: string = installId;
@@ -22,7 +24,8 @@ export async function POST(request: Request): Promise<Response> {
   const isPro = bearer ? hasProEntitlement(bearer.trim()) : false;
 
   let payload: unknown;
-  try { payload = await request.json(); } catch { return errorResponse('invalid_request', 400); }
+  try { payload = await request.json(); } catch { console.log('[translate] REJECT: json parse'); return errorResponse('invalid_request', 400); }
+  console.log('[translate] payload=', JSON.stringify(payload).slice(0, 300));
 
   try {
     const targetLanguage = requireString((payload as { targetLanguage?: unknown }).targetLanguage, 20);
