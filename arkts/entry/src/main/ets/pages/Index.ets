@@ -92,6 +92,11 @@ struct Index {
       NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.SignIn}` || name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
       NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.title(this.authTitle()).hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Privacy}` || name === `route_${AppRoute.NotificationSettings}` || name === `route_${AppRoute.General}` || name === `route_${AppRoute.DeleteAccount}`) {
+      // 开关类设置页（隐私/通知/通用/注销）
+      NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
+    } else if (name === `route_${AppRoute.HelpFeedback}`) {
+      NavDestination() { SupportHomePage({ store: this.store, remote: this.store.remote }) }.title('帮助与反馈').hideTitleBar(false)
     } else if (name === `route_${AppRoute.AccountSecurity}`) {
       NavDestination() { AccountSecurityPage({ store: this.store }) }.title('账户与安全').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Devices}`) {
@@ -123,6 +128,10 @@ struct Index {
     if (r === AppRoute.TranslationDisplay) return '翻译显示'
     if (r === AppRoute.Storage) return '存储与缓存'
     if (r === AppRoute.Permissions) return '权限管理'
+    if (r === AppRoute.Privacy) return '隐私设置'
+    if (r === AppRoute.NotificationSettings) return '通知设置'
+    if (r === AppRoute.General) return '通用设置'
+    if (r === AppRoute.DeleteAccount) return '注销账号'
     return '设置'
   }
 
