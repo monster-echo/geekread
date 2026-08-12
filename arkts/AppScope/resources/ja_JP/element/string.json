@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "翻訳表示"
+    },
+    {
+      "name": "interface_language",
+      "value": "表示言語"
+    },
+    {
+      "name": "display_original",
+      "value": "原文のみ"
+    },
+    {
+      "name": "display_both",
+      "value": "バイリンガル"
+    },
+    {
+      "name": "display_translation",
+      "value": "訳文のみ"
     }
   ]
 }

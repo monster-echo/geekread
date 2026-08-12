@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "Hiển thị bản dịch"
+    },
+    {
+      "name": "interface_language",
+      "value": "Ngôn ngữ giao diện"
+    },
+    {
+      "name": "display_original",
+      "value": "Chỉ bản gốc"
+    },
+    {
+      "name": "display_both",
+      "value": "Song ngữ"
+    },
+    {
+      "name": "display_translation",
+      "value": "Chỉ bản dịch"
     }
   ]
 }

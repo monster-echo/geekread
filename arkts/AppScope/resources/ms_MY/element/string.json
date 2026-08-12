@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "Paparan terjemahan"
+    },
+    {
+      "name": "interface_language",
+      "value": "Bahasa antara muka"
+    },
+    {
+      "name": "display_original",
+      "value": "Asal sahaja"
+    },
+    {
+      "name": "display_both",
+      "value": "Dwibahasa"
+    },
+    {
+      "name": "display_translation",
+      "value": "Terjemahan sahaja"
     }
   ]
 }

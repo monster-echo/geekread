@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "Translation display"
+    },
+    {
+      "name": "interface_language",
+      "value": "Interface language"
+    },
+    {
+      "name": "display_original",
+      "value": "Original only"
+    },
+    {
+      "name": "display_both",
+      "value": "Bilingual"
+    },
+    {
+      "name": "display_translation",
+      "value": "Translation only"
     }
   ]
 }

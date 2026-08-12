@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "翻译显示"
+    },
+    {
+      "name": "interface_language",
+      "value": "界面语言"
+    },
+    {
+      "name": "display_original",
+      "value": "只看原文"
+    },
+    {
+      "name": "display_both",
+      "value": "双语对照"
+    },
+    {
+      "name": "display_translation",
+      "value": "只看译文"
     }
   ]
 }

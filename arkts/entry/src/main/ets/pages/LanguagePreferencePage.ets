@@ -23,10 +23,10 @@ function languageLabel(code: string): string {
   return code
 }
 
-function displayLabel(mode: string): string {
-  if (mode === 'original') return '只看原文'
-  if (mode === 'both') return '双语对照'
-  if (mode === 'translation') return '只看译文'
+function displayLabel(mode: string, language: string): string {
+  if (mode === 'original') return appString(AppString.DisplayOriginal, language)
+  if (mode === 'both') return appString(AppString.DisplayBoth, language)
+  if (mode === 'translation') return appString(AppString.DisplayTranslation, language)
   return mode
 }
 
@@ -48,7 +48,8 @@ export struct LanguagePreferencePage {
         Column({ space: AppSpacing.x5 }) {
           // 界面语言
           Column({ space: AppSpacing.x2 }) {
-            Text('界面语言').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
+            Text(appString(AppString.InterfaceLanguage, this.store.language))
+              .fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(LANGUAGES, (code: string) => {
                 this.OptionRow('lang', code, this.language === code, () => { this.language = code })
@@ -58,7 +59,8 @@ export struct LanguagePreferencePage {
 
           // 翻译显示模式
           Column({ space: AppSpacing.x2 }) {
-            Text('翻译显示').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
+            Text(appString(AppString.TranslationDisplay, this.store.language))
+              .fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(DISPLAY_MODES, (mode: string) => {
                 this.OptionRow('display', mode, this.displayMode === mode, () => { this.displayMode = mode })
@@ -95,7 +97,7 @@ export struct LanguagePreferencePage {
 
   private labelFor(value: string): string {
     if (LANGUAGES.indexOf(value) >= 0) return languageLabel(value)
-    return displayLabel(value)
+    return displayLabel(value, this.store.language)
   }
 
   private async save(): Promise<void> {

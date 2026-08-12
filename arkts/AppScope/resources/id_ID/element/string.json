@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "Tampilan terjemahan"
+    },
+    {
+      "name": "interface_language",
+      "value": "Bahasa antarmuka"
+    },
+    {
+      "name": "display_original",
+      "value": "Asli saja"
+    },
+    {
+      "name": "display_both",
+      "value": "Bilingual"
+    },
+    {
+      "name": "display_translation",
+      "value": "Terjemahan saja"
     }
   ]
 }

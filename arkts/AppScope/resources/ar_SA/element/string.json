@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "عرض الترجمة"
+    },
+    {
+      "name": "interface_language",
+      "value": "لغة الواجهة"
+    },
+    {
+      "name": "display_original",
+      "value": "الأصل فقط"
+    },
+    {
+      "name": "display_both",
+      "value": "ثنائي اللغة"
+    },
+    {
+      "name": "display_translation",
+      "value": "الترجمة فقط"
     }
   ]
 }

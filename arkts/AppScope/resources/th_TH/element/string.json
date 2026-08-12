@@ -271,6 +271,22 @@
     {
       "name": "translation_display",
       "value": "การแสดงคำแปล"
+    },
+    {
+      "name": "interface_language",
+      "value": "ภาษาของอินเทอร์เฟซ"
+    },
+    {
+      "name": "display_original",
+      "value": "ต้นฉบับเท่านั้น"
+    },
+    {
+      "name": "display_both",
+      "value": "สองภาษา"
+    },
+    {
+      "name": "display_translation",
+      "value": "เฉพาะคำแปล"
     }
   ]
 }
