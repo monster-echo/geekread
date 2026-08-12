@@ -25,6 +25,7 @@ import {
 import { GeekReaderPage } from '../features/geek-reader/pages/GeekReaderPage'
 import { StoryDetailPage } from '../features/geek-reader/pages/StoryDetailPage'
 import { LanguagePreferencePage } from './LanguagePreferencePage'
+import { GeekMemberPage } from '../features/geek-reader/pages/GeekMemberPage'
 
 @Entry
 @Component
@@ -108,7 +109,7 @@ struct Index {
     } else if (name === `route_${AppRoute.Devices}`) {
       NavDestination() { SessionsPage({ store: this.store, remote: this.store.remote }) }.title('登录设备管理').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Membership}`) {
-      NavDestination() { MembershipPage({ store: this.store }) }.title('会员中心').hideTitleBar(false)
+      NavDestination() { GeekMemberPage({ store: this.store }) }.title('会员中心').hideTitleBar(false)
     } else if (name === `route_${AppRoute.MembershipPlans}`) {
       NavDestination() { MembershipPage({ store: this.store }) }.title('方案对比').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Checkout}`) {

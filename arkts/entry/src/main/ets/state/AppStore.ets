@@ -5,7 +5,8 @@ import { localStore } from '../data/LocalStore'
 import { AppUser, AuthPayload, OrderStatus, OrderView, PurchaseStatus, RuntimeConfig }
   from '../domain/Models'
 import { RemoteDataStore } from './RemoteDataStore'
-import { MockPaymentProvider } from '../payment/MockPaymentProvider'
+import { HMSIapProvider } from '../payment/HMSIapProvider'
+import { PaymentProvider } from '../payment/PaymentProvider'
 import { AppRoute } from '../navigation/AppRoute'
 import { telemetry, TelemetryConfig } from '../telemetry/Telemetry'
 import { AppTelemetrySink } from '../telemetry/AppTelemetrySink'
@@ -87,7 +88,13 @@ export class AppStore {
   pendingPlanId: string = ''
   remote: RemoteDataStore = new RemoteDataStore()
   private context: common.UIAbilityContext | null = null
+  private iap: HMSIapProvider = new HMSIapProvider()
   private initialized: boolean = false
+
+  private iapProvider(): PaymentProvider {
+    if (this.context !== null) this.iap.setContext(this.context)
+    return this.iap
+  }
   private queuedEntryName: string | null = null
   private queuedEntryCold: boolean = false
 
@@ -529,7 +536,8 @@ export class AppStore {
       const idempotencyKey: string =
         `ark-${Date.now()}-${Math.random().toString(36).slice(2)}`
       const order = await apiClient.createOrder(planId, idempotencyKey)
-      const provider: MockPaymentProvider = new MockPaymentProvider()
+      // 华为 IAP 真购买；开发测试可切回 MockPaymentProvider。
+      const provider = this.iapProvider()
       const result = await provider.purchase(order.storeProductId)
       const verified = await apiClient.verifyPurchase(order.orderId, result.receipt)
       this.purchaseOrder = verified
