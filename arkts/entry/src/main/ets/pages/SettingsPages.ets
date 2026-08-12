@@ -31,7 +31,8 @@ export struct SettingsPage {
               AppRoute.General,
               AppRoute.Appearance,
               AppRoute.Language,
-              AppRoute.TextSize
+              AppRoute.TextSize,
+              AppRoute.TranslationDisplay
             ])
           })
           SettingsGroup({

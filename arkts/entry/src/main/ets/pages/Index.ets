@@ -83,7 +83,7 @@ struct Index {
       NavDestination() { LegalDocumentPage({ store: this.store, type: 'privacy' }) }.title('隐私政策').hideTitleBar(false)
     } else if (name === `route_${AppRoute.TermsOfService}`) {
       NavDestination() { LegalDocumentPage({ store: this.store, type: 'terms' }) }.title('用户协议').hideTitleBar(false)
-    } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.Language}` || name === `route_${AppRoute.TextSize}`) {
+    } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.Language}` || name === `route_${AppRoute.TextSize}` || name === `route_${AppRoute.TranslationDisplay}`) {
       NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Storage}` || name === `route_${AppRoute.Permissions}`) {
       NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
@@ -110,6 +110,7 @@ struct Index {
     if (r === AppRoute.Appearance) return '外观主题'
     if (r === AppRoute.Language) return '语言'
     if (r === AppRoute.TextSize) return '字体大小'
+    if (r === AppRoute.TranslationDisplay) return '翻译显示'
     if (r === AppRoute.Storage) return '存储与缓存'
     if (r === AppRoute.Permissions) return '权限管理'
     return '设置'

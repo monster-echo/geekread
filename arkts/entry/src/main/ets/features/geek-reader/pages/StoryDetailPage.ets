@@ -85,11 +85,11 @@ export struct StoryDetailPage {
         } else {
           Scroll() {
             Column({ space: AppSpacing.x3 }) {
-              ImmersiveTranslation({ text: this.story.title, locale: this.store.language })
+              ImmersiveTranslation({ text: this.story.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
               if (this.story.url !== undefined && this.story.url.length > 0) {
                 Text('阅读原文 ↗').fontColor(AppColors.brand).fontSize(14)
               } else if (this.story.text !== undefined && this.story.text.length > 0) {
-                ImmersiveTranslation({ text: this.story.text, locale: this.store.language })
+                ImmersiveTranslation({ text: this.story.text, locale: this.store.language, displayMode: this.store.translationDisplayMode })
               }
               Text(`${this.story.score} 分 · ${this.story.by} · ${this.story.commentsCount} 评论`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
@@ -103,7 +103,7 @@ export struct StoryDetailPage {
                       (fc.node.replies.length > 0 ? ` · ${this.collapsed.includes(fc.node.id) ? '+' : '−'}${fc.node.replies.length}` : ''))
                       .fontSize(12).fontColor(AppColors.textSecondary)
                       .onClick(() => this.toggle(fc.node.id))
-                    ImmersiveTranslation({ text: fc.node.text, locale: this.store.language })
+                    ImmersiveTranslation({ text: fc.node.text, locale: this.store.language, displayMode: this.store.translationDisplayMode })
                   }
                 }
                 .alignItems(HorizontalAlign.Start)

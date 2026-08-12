@@ -41,7 +41,8 @@ export enum AppRoute {
   NewSupportTicket,
   ProductFeedback,
   GeekReader,
-  GeekReaderDetail
+  GeekReaderDetail,
+  TranslationDisplay
 }
 
 export function routeTitle(route: AppRoute): string {

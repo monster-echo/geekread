@@ -16,6 +16,7 @@ function labelOf(lang: TargetLanguage | null): string {
 export struct ImmersiveTranslation {
   @Prop text: string
   @Prop locale: string
+  @Prop displayMode: string = 'both' // 'original' | 'translation' | 'both'
   @State result: string = ''
   @State loading: boolean = false
   @State failed: boolean = false
@@ -23,6 +24,13 @@ export struct ImmersiveTranslation {
 
   private get lang(): TargetLanguage | null {
     return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
+  }
+
+  aboutToAppear(): void {
+    // 需要译文（translation / both）时自动触发，不点击。
+    if (this.displayMode !== 'original' && this.lang !== null && this.result.length === 0) {
+      this.doTranslate()
+    }
   }
 
   private doTranslate(): void {
@@ -47,40 +55,59 @@ export struct ImmersiveTranslation {
       })
   }
 
+  private showOriginal(): boolean {
+    return this.displayMode === 'original' || this.displayMode === 'both'
+  }
+
+  private showTranslation(): boolean {
+    return this.displayMode === 'translation' || this.displayMode === 'both'
+  }
+
   build() {
     Column({ space: AppSpacing.x1 }) {
-      Text(this.text)
-        .fontSize(15)
-        .fontColor(AppColors.text)
-        .width('100%')
+      // 原文（original / both）
+      if (this.showOriginal()) {
+        Text(this.text)
+          .fontSize(15)
+          .fontColor(AppColors.text)
+          .width('100%')
+      }
       if (this.lang === null) {
         // 源语言（en 等）不译，只显原文
-      } else if (this.loading) {
-        LoadingProgress().width(20).height(20)
-      } else if (this.result.length > 0) {
-        Column({ space: AppSpacing.x1 }) {
-          Text(`译 · ${labelOf(this.lang)}`)
-            .fontSize(11)
-            .fontColor(AppColors.brand)
-          Text(this.result)
-            .fontSize(14)
-            .fontColor(AppColors.text)
+      } else if (this.showTranslation()) {
+        if (this.displayMode === 'translation') {
+          // 只看译文：先显示原文（加载中），翻译完成后原地替换成译文。
+          if (this.result.length > 0) {
+            Text(this.result).fontSize(14).fontColor(AppColors.text).width('100%')
+          } else if (this.loading) {
+            Text(this.text).fontSize(15).fontColor(AppColors.textSecondary).opacity(0.7).width('100%')
+          } else if (this.failed) {
+            Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
+          } else {
+            Text(this.text).fontSize(15).fontColor(AppColors.text).width('100%')
+          }
+        } else {
+          // 双语（both）：原文已在上方，下方显示译文。
+          if (this.loading) {
+            LoadingProgress().width(20).height(20)
+          } else if (this.result.length > 0) {
+            Column({ space: AppSpacing.x1 }) {
+              Text(`译 · ${labelOf(this.lang)}`)
+                .fontSize(11)
+                .fontColor(AppColors.brand)
+              Text(this.result)
+                .fontSize(14)
+                .fontColor(AppColors.text)
+            }
+            .alignItems(HorizontalAlign.Start)
+            .border({ width: { left: 3 } })
+            .borderColor(AppColors.brand)
+            .padding({ left: AppSpacing.x2 })
+            .width('100%')
+          } else if (this.failed) {
+            Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
+          }
         }
-        .alignItems(HorizontalAlign.Start)
-        .border({ width: { left: 3 } })
-        .borderColor(AppColors.brand)
-        .padding({ left: AppSpacing.x2 })
-        .width('100%')
-      } else if (this.failed) {
-        Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
-      } else {
-        Button(`译 · ${labelOf(this.lang)}`)
-          .type(ButtonType.Normal)
-          .backgroundColor(AppColors.brandSoft)
-          .fontColor(AppColors.brand)
-          .fontSize(12)
-          .height(32)
-          .onClick(() => this.doTranslate())
       }
     }
     .width('100%')

@@ -83,6 +83,7 @@ export struct ChoicePreferencePage {
     if (this.route === AppRoute.Appearance) this.selected = this.store.theme
     if (this.route === AppRoute.Language) this.selected = this.store.language
     if (this.route === AppRoute.TextSize) this.selected = String(this.store.textScale)
+    if (this.route === AppRoute.TranslationDisplay) this.selected = this.store.translationDisplayMode
   }
 
   build() {
@@ -108,11 +109,13 @@ export struct ChoicePreferencePage {
     if (this.route === AppRoute.Appearance) this.store.saveSetting('theme', this.selected)
     if (this.route === AppRoute.Language) this.store.saveSetting('language', this.selected)
     if (this.route === AppRoute.TextSize) this.store.saveSetting('textScale', Number(this.selected))
+    if (this.route === AppRoute.TranslationDisplay) this.store.saveSetting('translationDisplay', this.selected)
   }
 
   private options(): string[] {
     if (this.route === AppRoute.Appearance) return ['system', 'light', 'dark']
     if (this.route === AppRoute.Language) return ['zh-CN', 'en-US']
+    if (this.route === AppRoute.TranslationDisplay) return ['original', 'both', 'translation']
     return ['0.9', '1', '1.15', '1.3']
   }
 
@@ -126,12 +129,16 @@ export struct ChoicePreferencePage {
     if (value === '1') return appString(AppString.TextStandard, this.store.language)
     if (value === '1.15') return appString(AppString.TextLarge, this.store.language)
     if (value === '1.3') return appString(AppString.TextExtraLarge, this.store.language)
+    if (value === 'original') return '只看原文'
+    if (value === 'both') return '双语对照'
+    if (value === 'translation') return '只看译文'
     return value
   }
 
   private title(): string {
     if (this.route === AppRoute.Appearance) return appString(AppString.Appearance, this.store.language)
     if (this.route === AppRoute.Language) return appString(AppString.Language, this.store.language)
+    if (this.route === AppRoute.TranslationDisplay) return '翻译显示'
     return appString(AppString.TextSize, this.store.language)
   }
 }

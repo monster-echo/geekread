@@ -67,6 +67,8 @@ export class AppStore {
   language: string = 'zh-CN'
   geekReaderStoryId: number = -1
   textScale: number = 1
+  // 沉浸翻译显示模式：'original' 只看原文 / 'translation' 只看译文 / 'both' 双语
+  translationDisplayMode: string = 'both'
   config: RuntimeConfig | null = null
   user: AppUser | null = null
   toastMessage: string = ''
@@ -150,9 +152,13 @@ export class AppStore {
     const theme = localStore.readTheme()
     const language = localStore.readLanguage() === 'en-US' ? 'en-US' : 'zh-CN'
     const textScale = Math.min(1.3, Math.max(0.9, localStore.readTextScale()))
+    const display = localStore.readTranslationDisplay()
     this.theme = theme
     this.language = language
     this.textScale = textScale
+    this.translationDisplayMode = (display === 'original' || display === 'translation' || display === 'both')
+      ? display
+      : 'both'
     const colorMode = theme === 'dark'
       ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK
       : theme === 'light'

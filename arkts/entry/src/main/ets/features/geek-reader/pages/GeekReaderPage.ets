@@ -153,7 +153,7 @@ export struct GeekReaderPage {
   @Builder
   StoryItem(s: Story) {
     Column({ space: AppSpacing.x1 }) {
-      ImmersiveTranslation({ text: s.title, locale: this.store.language })
+      ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
       Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
         .fontSize(12).fontColor(AppColors.textSecondary)
     }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)

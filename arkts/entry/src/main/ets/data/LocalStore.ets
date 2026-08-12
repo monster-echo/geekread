@@ -10,6 +10,7 @@ const INSTALLATION_KEY: string = 'installationId'
 const THEME_KEY: string = 'preference.theme'
 const LANGUAGE_KEY: string = 'preference.language'
 const TEXT_SCALE_KEY: string = 'preference.textScale'
+const TRANSLATION_DISPLAY_KEY: string = 'preference.translationDisplay'
 
 export class LocalStore {
   private store?: preferences.Preferences
@@ -65,10 +66,15 @@ export class LocalStore {
     return Number(this.store?.getSync(TEXT_SCALE_KEY, 1) ?? 1)
   }
 
+  readTranslationDisplay(): string {
+    return String(this.store?.getSync(TRANSLATION_DISPLAY_KEY, 'both') ?? 'both')
+  }
+
   savePreference(key: string, value: string | number): void {
     if (key === 'theme') this.store?.putSync(THEME_KEY, value)
     if (key === 'language') this.store?.putSync(LANGUAGE_KEY, value)
     if (key === 'textScale') this.store?.putSync(TEXT_SCALE_KEY, value)
+    if (key === 'translationDisplay') this.store?.putSync(TRANSLATION_DISPLAY_KEY, value)
     this.store?.flush()
   }
 
