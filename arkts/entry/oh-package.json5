@@ -5,5 +5,9 @@
   "main": "",
   "author": "MobileUI",
   "license": "UNLICENSED",
-  "dependencies": {}
+  "dependencies": {
+    "@luvi/lv-markdown-in": "^3.4.5"
+  },
+  "devDependencies": {},
+  "dynamicDependencies": {}
 }

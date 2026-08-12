@@ -7,6 +7,7 @@ import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { LegalDocument } from '../domain/Models'
 import { pickAvatarDataUrl } from '../media/AvatarPicker'
 import { appString, AppString } from '../localization/AppStrings'
+import { lvMarkdownIn } from '@luvi/lv-markdown-in'
 
 @Component
 export struct AccountSecurityPage {
@@ -195,17 +196,16 @@ export struct LegalPage {
   build() {
     Column() {
       PageHeader({ store: this.store, title: '协议与政策' })
-      List({ space: AppSpacing.x3 }) {
+      Column({ space: AppSpacing.x2 }) {
+        // 入口列表：点进单篇
         ForEach(this.store.config?.legal ?? [], (document: LegalDocument) => {
-          ListItem() {
-            Column({ space: AppSpacing.x2 }) {
-              Text(document.title).fontSize(18).fontWeight(FontWeight.Bold)
-              Text(`版本 ${document.revision}`).fontColor(AppColors.textSecondary)
-              Text(document.content).fontColor(AppColors.text)
-            }
-            .alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
-            .backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
+          Row({ space: AppSpacing.x3 }) {
+            Text(document.title).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
+            Text(`版本 ${document.revision}`).fontSize(12).fontColor(AppColors.textSecondary)
           }
+          .width('100%').height(56).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
+          .backgroundColor(AppColors.surface)
+          .onClick(() => this.store.navigate(document.type === 'privacy' ? AppRoute.PrivacyPolicy : AppRoute.TermsOfService))
         })
       }.padding(AppSpacing.x4).layoutWeight(1)
     }.width('100%').height('100%')
@@ -226,9 +226,13 @@ export struct LegalDocumentPage {
             Text('当前 App 尚未配置该协议文档。').fontColor(AppColors.textSecondary)
           } else {
             Text(`版本 ${this.document()?.revision ?? ''}`).fontColor(AppColors.textSecondary)
-            Text(this.document()?.content ?? '').fontColor(AppColors.text)
+            // 用现成 lv-markdown-in 渲染完整 markdown
+            lvMarkdownIn({
+              text: this.document()?.content ?? '',
+              loadMode: 'text'
+            })
           }
-        }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
+        }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4).width('100%')
       }.layoutWeight(1)
     }.width('100%').height('100%')
   }
