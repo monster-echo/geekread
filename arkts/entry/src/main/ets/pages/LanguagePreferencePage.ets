@@ -51,7 +51,7 @@ export struct LanguagePreferencePage {
             Text('界面语言').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(LANGUAGES, (code: string) => {
-                this.OptionRow(code, this.language === code, () => { this.language = code })
+                this.OptionRow('lang', code, this.language === code, () => { this.language = code })
               })
             }.backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
           }.alignItems(HorizontalAlign.Start).width('100%')
@@ -61,7 +61,7 @@ export struct LanguagePreferencePage {
             Text('翻译显示').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(DISPLAY_MODES, (mode: string) => {
-                this.OptionRow(mode, this.displayMode === mode, () => { this.displayMode = mode })
+                this.OptionRow('display', mode, this.displayMode === mode, () => { this.displayMode = mode })
               })
             }.backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
           }.alignItems(HorizontalAlign.Start).width('100%')
@@ -79,15 +79,17 @@ export struct LanguagePreferencePage {
   }
 
   @Builder
-  OptionRow(value: string, selected: boolean, onTap: () => void) {
-    Row() {
+  OptionRow(group: string, value: string, selected: boolean, onTap: () => void) {
+    Row({ space: AppSpacing.x3 }) {
+      Radio({ group: group, value: value }).checked(selected)
+        .onChange(() => onTap())
       Text(this.labelFor(value))
         .fontSize(16)
-        .fontColor(selected ? AppColors.onBrand : AppColors.text)
+        .fontColor(AppColors.text)
         .layoutWeight(1)
     }
     .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
-    .backgroundColor(selected ? AppColors.brand : AppColors.surface)
+    .backgroundColor(AppColors.surface)
     .onClick(onTap)
   }
 

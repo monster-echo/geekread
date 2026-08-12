@@ -90,19 +90,28 @@ export struct ChoicePreferencePage {
     Column() {
       PageHeader({ store: this.store, title: this.title() })
       Column({ space: AppSpacing.x3 }) {
-        ForEach(this.options(), (option: string) => {
-          Button(this.label(option))
-            .width('100%').height(52)
-            .fontColor(option === this.selected ? AppColors.onBrand : AppColors.text)
-            .backgroundColor(option === this.selected ? AppColors.brand : AppColors.surface)
+        Column() {
+          ForEach(this.options(), (option: string) => {
+            Row({ space: AppSpacing.x3 }) {
+              Radio({ group: this.groupName(), value: option }).checked(option === this.selected)
+                .onChange(() => this.selected = option)
+              Text(this.label(option)).fontSize(16).fontColor(AppColors.text)
+            }
+            .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
+            .backgroundColor(AppColors.surface)
             .onClick(() => this.selected = option)
-        })
+          })
+        }.borderRadius(AppRadii.card)
         AppButton({ label: this.store.busy
           ? appString(AppString.Saving, this.store.language)
           : appString(AppString.SaveSettings, this.store.language),
           icon: AppIconName.Check, onTap: () => this.save() })
       }.padding(AppSpacing.x4).layoutWeight(1)
     }.width('100%').height('100%')
+  }
+
+  private groupName(): string {
+    return `pref_${this.route}`
   }
 
   private save(): void {
