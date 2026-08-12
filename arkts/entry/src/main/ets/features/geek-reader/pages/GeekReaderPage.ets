@@ -111,11 +111,9 @@ export struct GeekReaderPage {
   @Builder
   ReaderContent() {
     Column() {
-      // 顶栏：汉堡 + 标题
+      // 顶栏：标题居中（抽屉开关用原生 SideBarContainer 控制按钮）
       Row() {
-        Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
-          .width(48).height(48).justifyContent(FlexAlign.Center)
-          .onClick(() => { this.vibrate(); this.drawerOpen = true })
+        Blank().width(48)
         Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
           .layoutWeight(1).textAlign(TextAlign.Center)
         Blank().width(48)
