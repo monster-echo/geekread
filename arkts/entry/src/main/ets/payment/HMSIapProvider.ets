@@ -40,6 +40,15 @@ export class HMSIapProvider implements PaymentProvider {
   purchase(storeProductId: string): Promise<PurchaseResult> {
     const ctx = this.context
     if (ctx == null) return Promise.reject(new Error('IAP context not set'))
+    // 先检查 IAP 环境（AGC 未配商品时 queryEnvironmentStatus 抛错 → 返回错误，避免 createPurchase native 崩溃）
+    return iap.queryEnvironmentStatus(ctx)
+      .then(() => this.doPurchase(ctx, storeProductId))
+      .catch((e: Error) => {
+        throw new Error(`IAP unavailable: ${e.message}`)
+      })
+  }
+
+  private doPurchase(ctx: common.UIAbilityContext, storeProductId: string): Promise<PurchaseResult> {
     const parameter: iap.PurchaseParameter = {
       productId: storeProductId,
       productType: iap.ProductType.AUTORENEWABLE,
