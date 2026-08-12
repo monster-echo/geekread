@@ -6,6 +6,11 @@ const supportedLanguages = new Map<string, string>([
   ['ko', 'Korean'],
   ['zh-Hans', 'Simplified Chinese'],
   ['zh-Hant', 'Traditional Chinese'],
+  ['ms', 'Malay'],
+  ['id', 'Indonesian'],
+  ['th', 'Thai'],
+  ['vi', 'Vietnamese'],
+  ['ar', 'Arabic'],
 ]);
 
 type ChatCompletion = {

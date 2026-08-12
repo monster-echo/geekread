@@ -36,7 +36,7 @@ export interface ItemsResponse {
   stale: boolean;
 }
 
-export type TargetLanguage = "en" | "ja" | "ko" | "zh-Hans" | "zh-Hant";
+export type TargetLanguage = "en" | "ja" | "ko" | "zh-Hans" | "zh-Hant" | "ms" | "id" | "th" | "vi" | "ar";
 
 export interface TranslateEntry {
   key: string;

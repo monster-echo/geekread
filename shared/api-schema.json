@@ -43,7 +43,7 @@
         "stale": { "type": "boolean" }
       }
     },
-    "TargetLanguage": { "type": "string", "enum": ["en", "ja", "ko", "zh-Hans", "zh-Hant"] },
+    "TargetLanguage": { "type": "string", "enum": ["en", "ja", "ko", "zh-Hans", "zh-Hant", "ms", "id", "th", "vi", "ar"] },
     "TranslateEntry": {
       "type": "object", "required": ["key", "text"],
       "properties": { "key": { "type": "string", "maxLength": 256 }, "text": { "type": "string", "maxLength": 12000 } }

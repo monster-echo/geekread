@@ -4,7 +4,7 @@ import { translateWithModel } from '../../../lib/model';
 import { reserveDaily, today } from '../../../lib/quota';
 import { cacheTranslation, getCachedTranslation } from '../../../lib/storage';
 
-const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant']);
+const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
 const MAX_ENTRIES = 20;
 const MAX_TOTAL_CHARS = 12_000;
 

@@ -14,7 +14,7 @@ export type HNItem = {
   dead?: boolean;
 };
 
-export type TargetLanguage = 'en' | 'ja' | 'ko' | 'zh-Hans' | 'zh-Hant';
+export type TargetLanguage = 'en' | 'ja' | 'ko' | 'zh-Hans' | 'zh-Hant' | 'ms' | 'id' | 'th' | 'vi' | 'ar';
 
 export type Story = {
   id: number;

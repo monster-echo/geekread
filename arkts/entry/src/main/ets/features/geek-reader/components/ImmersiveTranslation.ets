@@ -8,6 +8,11 @@ function labelOf(lang: TargetLanguage | null): string {
   if (lang === 'zh-Hant') return '繁體中文'
   if (lang === 'ja') return '日本語'
   if (lang === 'ko') return '한국어'
+  if (lang === 'ms') return 'Bahasa Melayu'
+  if (lang === 'id') return 'Bahasa Indonesia'
+  if (lang === 'th') return 'ไทย'
+  if (lang === 'vi') return 'Tiếng Việt'
+  if (lang === 'ar') return 'العربية'
   if (lang === 'en') return 'English'
   return '简体中文'
 }
