@@ -6,7 +6,7 @@ const listFreshTtlSeconds = 60;
 const listStaleTtlSeconds = 600;
 const itemFreshTtlSeconds = 300;
 const itemStaleTtlSeconds = 3600;
-const fetchTimeoutMs = 5_000;
+const fetchTimeoutMs = 15_000;
 const fetchConcurrency = 8;
 
 export type HackerNewsItem = Record<string, unknown>;

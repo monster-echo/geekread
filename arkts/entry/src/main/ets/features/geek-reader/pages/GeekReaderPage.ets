@@ -2,12 +2,13 @@ import { AppStore } from '../../../state/AppStore'
 import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { PageHeader } from '../../../design_system/Components'
-import { AppColors, AppSpacing } from '../../../theme/AppTokens'
+import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
 import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 
 const PAGE: number = 20
+const SKELETON_COUNT: number = 8
 
 @Component
 export struct GeekReaderPage {
@@ -18,6 +19,7 @@ export struct GeekReaderPage {
   @State latestStatus: AsyncStatus = AsyncStatus.Idle
   @State tab: string = 'top'
   @State errorMessage: string = ''
+  @State refreshing: boolean = false
 
   aboutToAppear(): void {
     this.load('top')
@@ -41,7 +43,14 @@ export struct GeekReaderPage {
       this.errorMessage = e instanceof Error ? e.message : '加载失败'
       if (type === 'top') this.topStatus = AsyncStatus.Error
       else this.latestStatus = AsyncStatus.Error
+    } finally {
+      this.refreshing = false
     }
+  }
+
+  private refresh(): void {
+    this.refreshing = true
+    this.load(this.tab)
   }
 
   private get currentStories(): Story[] {
@@ -55,6 +64,18 @@ export struct GeekReaderPage {
   private openStory(id: number): void {
     this.store.geekReaderStoryId = id
     this.store.navigate(AppRoute.GeekReaderDetail)
+  }
+
+  @Builder
+  SkeletonRow() {
+    Column({ space: AppSpacing.x1 }) {
+      Row().width('90%').height(18).borderRadius(AppRadii.small).backgroundColor(AppColors.surfaceMuted)
+      Row().width('55%').height(18).borderRadius(AppRadii.small).backgroundColor(AppColors.surfaceMuted)
+      Row().width('40%').height(12).borderRadius(AppRadii.small).backgroundColor(AppColors.border)
+    }
+    .alignItems(HorizontalAlign.Start)
+    .padding(AppSpacing.x4)
+    .border({ width: { bottom: 1 }, color: AppColors.border })
   }
 
   build() {
@@ -77,30 +98,42 @@ export struct GeekReaderPage {
       }.width('100%')
 
       if (this.currentStatus === AsyncStatus.Loading) {
-        LoadingProgress().width(40).height(40).layoutWeight(1)
+        // 骨架屏：8 行灰色占位
+        List({ space: AppSpacing.x3 }) {
+          ForEach([0, 1, 2, 3, 4, 5, 6, 7], (i: number) => {
+            ListItem() { this.SkeletonRow() }
+          }, (i: number) => `sk-${i}`)
+        }.layoutWeight(1)
       } else if (this.currentStatus === AsyncStatus.Empty) {
-        Text('暂无内容').fontColor(AppColors.textSecondary).layoutWeight(1)
+        Column({ space: AppSpacing.x3 }) {
+          Text('暂无内容').fontColor(AppColors.textSecondary)
+          Button('重试').onClick(() => this.refresh())
+        }.justifyContent(FlexAlign.Center).layoutWeight(1)
       } else if (this.currentStatus === AsyncStatus.Error) {
-        Column({ space: AppSpacing.x4 }) {
+        Column({ space: AppSpacing.x3 }) {
           Text(this.errorMessage).fontColor(AppColors.textSecondary)
-          Button('重试').onClick(() => this.load(this.tab))
+          Button('重试').onClick(() => this.refresh())
         }.justifyContent(FlexAlign.Center).layoutWeight(1)
       } else {
-        List({ space: AppSpacing.x3 }) {
-          ForEach(this.currentStories, (s: Story) => {
-            ListItem() {
-              Column({ space: AppSpacing.x1 }) {
-                ImmersiveTranslation({ text: s.title, locale: this.store.language })
-                Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
-                  .fontSize(12).fontColor(AppColors.textSecondary)
+        Refresh({ refreshing: $$this.refreshing }) {
+          List({ space: AppSpacing.x3 }) {
+            ForEach(this.currentStories, (s: Story) => {
+              ListItem() {
+                Column({ space: AppSpacing.x1 }) {
+                  ImmersiveTranslation({ text: s.title, locale: this.store.language })
+                  Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
+                    .fontSize(12).fontColor(AppColors.textSecondary)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .padding(AppSpacing.x4)
+                .border({ width: { bottom: 1 }, color: AppColors.border })
               }
-              .alignItems(HorizontalAlign.Start)
-              .padding(AppSpacing.x4)
-              .border({ width: { bottom: 1 }, color: AppColors.border })
-            }
-            .onClick(() => this.openStory(s.id))
-          }, (s: Story) => `${s.id}`)
-        }.layoutWeight(1)
+              .onClick(() => this.openStory(s.id))
+            }, (s: Story) => `${s.id}`)
+          }
+        }
+        .onRefreshing(() => this.refresh())
+        .layoutWeight(1)
       }
     }.width('100%').height('100%')
   }
