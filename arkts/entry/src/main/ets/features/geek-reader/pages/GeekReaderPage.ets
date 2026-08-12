@@ -192,7 +192,7 @@ export struct GeekReaderPage {
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
                   .onReachEnd(() => this.loadMore('top'))
-                  .padding({ bottom: AppSpacing.x8 })
+                  .padding({ bottom: 40 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
@@ -209,7 +209,7 @@ export struct GeekReaderPage {
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
                   .onReachEnd(() => this.loadMore('latest'))
-                  .padding({ bottom: AppSpacing.x8 })
+                  .padding({ bottom: 40 })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
