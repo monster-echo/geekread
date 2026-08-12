@@ -53,21 +53,23 @@ export struct GeekReaderPage {
     if (this.loadingMore) return
     const ids = type === 'top' ? this.topIds : this.latestIds
     const stories = type === 'top' ? this.topStories : this.latestStories
-    if (ids.length === 0 || stories.length >= ids.length) {
-      this.store.showToast('没有更多了')
-      return
-    }
+    if (ids.length === 0 || stories.length >= ids.length) return
     this.loadingMore = true
-    this.store.showToast('加载更多…')
     try {
       const next = ids.slice(stories.length, stories.length + PAGE)
       const result = await fetchStoriesResolved(next)
       this.putStories(type, stories.concat(result))
     } catch (e) {
-      this.store.showToast('加载失败', true)
+      // 静默：footer 状态自动随 loadingMore 消失
     } finally {
       this.loadingMore = false
     }
+  }
+
+  private isNoMore(type: string): boolean {
+    const ids = type === 'top' ? this.topIds : this.latestIds
+    const stories = type === 'top' ? this.topStories : this.latestStories
+    return ids.length > 0 && stories.length >= ids.length
   }
 
   private setStatus(type: string, s: AsyncStatus): void {
@@ -106,6 +108,19 @@ export struct GeekReaderPage {
   private onScrollDir(offset: number): void {
     if (offset > 1) this.headerVisible = false
     else if (offset < -1) this.headerVisible = true
+  }
+
+  @Builder
+  ListFooter(type: string) {
+    if (this.loadingMore) {
+      Row({ space: AppSpacing.x2 }) {
+        LoadingProgress().width(20).height(20).color(AppColors.brand)
+        Text('加载中…').fontSize(12).fontColor(AppColors.textSecondary)
+      }.width('100%').height(48).justifyContent(FlexAlign.Center)
+    } else if (this.isNoMore(type)) {
+      Text('没有更多了').fontSize(12).fontColor(AppColors.textSecondary)
+        .width('100%').height(48).textAlign(TextAlign.Center)
+    }
   }
 
   @Builder
@@ -193,9 +208,12 @@ export struct GeekReaderPage {
                     ForEach(this.topStories, (s: Story) => {
                       ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
                     }, (s: Story) => `${s.id}`)
+                    ListItem() { this.ListFooter('top') }
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
-                  .onReachEnd(() => this.loadMore('top'))
+                  .onScrollIndex((start: number, end: number) => {
+                    if (this.topStories.length > 0 && end >= this.topStories.length - 5) this.loadMore('top')
+                  })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
@@ -209,9 +227,12 @@ export struct GeekReaderPage {
                     ForEach(this.latestStories, (s: Story) => {
                       ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
                     }, (s: Story) => `${s.id}`)
+                    ListItem() { this.ListFooter('latest') }
                   }
                   .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
-                  .onReachEnd(() => this.loadMore('latest'))
+                  .onScrollIndex((start: number, end: number) => {
+                    if (this.latestStories.length > 0 && end >= this.latestStories.length - 5) this.loadMore('latest')
+                  })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
