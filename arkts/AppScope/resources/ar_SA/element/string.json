@@ -1,0 +1,272 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "GeekRead"
+    },
+    {
+      "name": "back",
+      "value": "رجوع"
+    },
+    {
+      "name": "profile_title",
+      "value": "الملف الشخصي"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "سجّل الدخول لمزامنة بياناتك"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "تتم مزامنة العضوية والطلبات والكوبونات والإعدادات بأمان."
+    },
+    {
+      "name": "sign_in_action",
+      "value": "تسجيل الدخول أو إنشاء حساب"
+    },
+    {
+      "name": "profile_edit",
+      "value": "تعديل الملف الشخصي"
+    },
+    {
+      "name": "membership",
+      "value": "العضوية"
+    },
+    {
+      "name": "statistics",
+      "value": "إحصائيات الاستخدام"
+    },
+    {
+      "name": "orders",
+      "value": "الطلبات"
+    },
+    {
+      "name": "settings",
+      "value": "الإعدادات"
+    },
+    {
+      "name": "sign_out",
+      "value": "تسجيل الخروج"
+    },
+    {
+      "name": "account_services",
+      "value": "الحساب والخدمات"
+    },
+    {
+      "name": "preferences",
+      "value": "تفضيلات التطبيق"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "الخصوصية والتخزين والدعم"
+    },
+    {
+      "name": "account_security",
+      "value": "الحساب والأمان"
+    },
+    {
+      "name": "devices",
+      "value": "أجهزة تسجيل الدخول"
+    },
+    {
+      "name": "notification_settings",
+      "value": "الإشعارات"
+    },
+    {
+      "name": "general",
+      "value": "عام"
+    },
+    {
+      "name": "appearance",
+      "value": "المظهر"
+    },
+    {
+      "name": "language",
+      "value": "اللغة"
+    },
+    {
+      "name": "text_size",
+      "value": "حجم النص"
+    },
+    {
+      "name": "privacy",
+      "value": "الخصوصية"
+    },
+    {
+      "name": "permissions",
+      "value": "الأذونات"
+    },
+    {
+      "name": "storage",
+      "value": "التخزين والذاكرة المؤقتة"
+    },
+    {
+      "name": "help_feedback",
+      "value": "المساعدة والملاحظات"
+    },
+    {
+      "name": "legal",
+      "value": "الشروط والسياسات"
+    },
+    {
+      "name": "about",
+      "value": "حول"
+    },
+    {
+      "name": "delete_account",
+      "value": "حذف الحساب"
+    },
+    {
+      "name": "theme_system",
+      "value": "حسب النظام"
+    },
+    {
+      "name": "theme_light",
+      "value": "فاتح"
+    },
+    {
+      "name": "theme_dark",
+      "value": "داكن"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "صغير"
+    },
+    {
+      "name": "text_standard",
+      "value": "قياسي"
+    },
+    {
+      "name": "text_large",
+      "value": "كبير"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "كبير جدًا"
+    },
+    {
+      "name": "save_settings",
+      "value": "حفظ الإعدادات"
+    },
+    {
+      "name": "saving",
+      "value": "جارٍ الحفظ…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "اسم المستخدم (لا يمكن تغييره)"
+    },
+    {
+      "name": "display_name",
+      "value": "الاسم المعروض"
+    },
+    {
+      "name": "bio",
+      "value": "نبذة"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "اختر الصورة الرمزية"
+    },
+    {
+      "name": "avatar_url",
+      "value": "أو الصق رابط الصورة الرمزية"
+    },
+    {
+      "name": "save_profile",
+      "value": "حفظ الملف الشخصي"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "GeekRead"
+    },
+    {
+      "name": "top_stories",
+      "value": "الأفضل"
+    },
+    {
+      "name": "latest_stories",
+      "value": "الأحدث"
+    },
+    {
+      "name": "refresh_success",
+      "value": "تم التحديث"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "فشل التحديث"
+    },
+    {
+      "name": "load_failed",
+      "value": "فشل التحميل"
+    },
+    {
+      "name": "no_content",
+      "value": "لا يوجد محتوى"
+    },
+    {
+      "name": "no_more",
+      "value": "لا يوجد المزيد"
+    },
+    {
+      "name": "loading_more",
+      "value": "جارٍ التحميل…"
+    },
+    {
+      "name": "original_text",
+      "value": "الأصل"
+    },
+    {
+      "name": "translated",
+      "value": "مترجم"
+    },
+    {
+      "name": "translation_failed",
+      "value": "فشلت الترجمة"
+    },
+    {
+      "name": "backend_hint",
+      "value": "الخادم غير مكوّن"
+    },
+    {
+      "name": "retry",
+      "value": "إعادة المحاولة"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "غير مسجل الدخول"
+    },
+    {
+      "name": "login",
+      "value": "تسجيل الدخول"
+    },
+    {
+      "name": "article",
+      "value": "مقال"
+    },
+    {
+      "name": "points_comments",
+      "value": " نقطة · "
+    },
+    {
+      "name": "comments",
+      "value": "تعليق"
+    },
+    {
+      "name": "read_original",
+      "value": "اقرأ الأصل ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[محذوف]"
+    }
+  ]
+}

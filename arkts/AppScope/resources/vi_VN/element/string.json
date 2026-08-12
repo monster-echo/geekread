@@ -1,0 +1,272 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "GeekRead"
+    },
+    {
+      "name": "back",
+      "value": "Quay lại"
+    },
+    {
+      "name": "profile_title",
+      "value": "Hồ sơ"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "Đăng nhập để đồng bộ dữ liệu của bạn"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "Gói thành viên, đơn hàng, phiếu giảm giá và cài đặt đồng bộ an toàn."
+    },
+    {
+      "name": "sign_in_action",
+      "value": "Đăng nhập hoặc tạo tài khoản"
+    },
+    {
+      "name": "profile_edit",
+      "value": "Sửa hồ sơ"
+    },
+    {
+      "name": "membership",
+      "value": "Thành viên"
+    },
+    {
+      "name": "statistics",
+      "value": "Thống kê sử dụng"
+    },
+    {
+      "name": "orders",
+      "value": "Đơn hàng"
+    },
+    {
+      "name": "settings",
+      "value": "Cài đặt"
+    },
+    {
+      "name": "sign_out",
+      "value": "Đăng xuất"
+    },
+    {
+      "name": "account_services",
+      "value": "Tài khoản & dịch vụ"
+    },
+    {
+      "name": "preferences",
+      "value": "Tùy chọn ứng dụng"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "Quyền riêng tư, lưu trữ & hỗ trợ"
+    },
+    {
+      "name": "account_security",
+      "value": "Tài khoản & bảo mật"
+    },
+    {
+      "name": "devices",
+      "value": "Thiết bị đã đăng nhập"
+    },
+    {
+      "name": "notification_settings",
+      "value": "Thông báo"
+    },
+    {
+      "name": "general",
+      "value": "Chung"
+    },
+    {
+      "name": "appearance",
+      "value": "Giao diện"
+    },
+    {
+      "name": "language",
+      "value": "Ngôn ngữ"
+    },
+    {
+      "name": "text_size",
+      "value": "Cỡ chữ"
+    },
+    {
+      "name": "privacy",
+      "value": "Quyền riêng tư"
+    },
+    {
+      "name": "permissions",
+      "value": "Quyền hạn"
+    },
+    {
+      "name": "storage",
+      "value": "Lưu trữ & bộ nhớ đệm"
+    },
+    {
+      "name": "help_feedback",
+      "value": "Trợ giúp & phản hồi"
+    },
+    {
+      "name": "legal",
+      "value": "Điều khoản & chính sách"
+    },
+    {
+      "name": "about",
+      "value": "Giới thiệu"
+    },
+    {
+      "name": "delete_account",
+      "value": "Xóa tài khoản"
+    },
+    {
+      "name": "theme_system",
+      "value": "Theo hệ thống"
+    },
+    {
+      "name": "theme_light",
+      "value": "Sáng"
+    },
+    {
+      "name": "theme_dark",
+      "value": "Tối"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "Nhỏ"
+    },
+    {
+      "name": "text_standard",
+      "value": "Tiêu chuẩn"
+    },
+    {
+      "name": "text_large",
+      "value": "Lớn"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "Rất lớn"
+    },
+    {
+      "name": "save_settings",
+      "value": "Lưu cài đặt"
+    },
+    {
+      "name": "saving",
+      "value": "Đang lưu…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "Tên người dùng (không thể thay đổi)"
+    },
+    {
+      "name": "display_name",
+      "value": "Tên hiển thị"
+    },
+    {
+      "name": "bio",
+      "value": "Giới thiệu ngắn"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "Chọn ảnh đại diện"
+    },
+    {
+      "name": "avatar_url",
+      "value": "Hoặc dán URL ảnh đại diện"
+    },
+    {
+      "name": "save_profile",
+      "value": "Lưu hồ sơ"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "GeekRead"
+    },
+    {
+      "name": "top_stories",
+      "value": "Nổi bật"
+    },
+    {
+      "name": "latest_stories",
+      "value": "Mới nhất"
+    },
+    {
+      "name": "refresh_success",
+      "value": "Đã làm mới"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "Làm mới thất bại"
+    },
+    {
+      "name": "load_failed",
+      "value": "Tải thất bại"
+    },
+    {
+      "name": "no_content",
+      "value": "Không có nội dung"
+    },
+    {
+      "name": "no_more",
+      "value": "Hết rồi"
+    },
+    {
+      "name": "loading_more",
+      "value": "Đang tải…"
+    },
+    {
+      "name": "original_text",
+      "value": "Bản gốc"
+    },
+    {
+      "name": "translated",
+      "value": "Đã dịch"
+    },
+    {
+      "name": "translation_failed",
+      "value": "Dịch thất bại"
+    },
+    {
+      "name": "backend_hint",
+      "value": "Backend chưa cấu hình"
+    },
+    {
+      "name": "retry",
+      "value": "Thử lại"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "Chưa đăng nhập"
+    },
+    {
+      "name": "login",
+      "value": "Đăng nhập"
+    },
+    {
+      "name": "article",
+      "value": "Bài viết"
+    },
+    {
+      "name": "points_comments",
+      "value": " điểm · "
+    },
+    {
+      "name": "comments",
+      "value": "bình luận"
+    },
+    {
+      "name": "read_original",
+      "value": "Đọc bản gốc ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[đã xóa]"
+    }
+  ]
+}

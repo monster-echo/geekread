@@ -1,0 +1,272 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "GeekRead"
+    },
+    {
+      "name": "back",
+      "value": "Kembali"
+    },
+    {
+      "name": "profile_title",
+      "value": "Profil"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "Masuk untuk menyinkronkan data Anda"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "Keanggotaan, pesanan, kupon, dan pengaturan disinkronkan dengan aman."
+    },
+    {
+      "name": "sign_in_action",
+      "value": "Masuk atau buat akun"
+    },
+    {
+      "name": "profile_edit",
+      "value": "Edit profil"
+    },
+    {
+      "name": "membership",
+      "value": "Keanggotaan"
+    },
+    {
+      "name": "statistics",
+      "value": "Statistik penggunaan"
+    },
+    {
+      "name": "orders",
+      "value": "Pesanan"
+    },
+    {
+      "name": "settings",
+      "value": "Pengaturan"
+    },
+    {
+      "name": "sign_out",
+      "value": "Keluar"
+    },
+    {
+      "name": "account_services",
+      "value": "Akun & layanan"
+    },
+    {
+      "name": "preferences",
+      "value": "Preferensi aplikasi"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "Privasi, penyimpanan & dukungan"
+    },
+    {
+      "name": "account_security",
+      "value": "Akun & keamanan"
+    },
+    {
+      "name": "devices",
+      "value": "Perangkat masuk"
+    },
+    {
+      "name": "notification_settings",
+      "value": "Notifikasi"
+    },
+    {
+      "name": "general",
+      "value": "Umum"
+    },
+    {
+      "name": "appearance",
+      "value": "Tampilan"
+    },
+    {
+      "name": "language",
+      "value": "Bahasa"
+    },
+    {
+      "name": "text_size",
+      "value": "Ukuran teks"
+    },
+    {
+      "name": "privacy",
+      "value": "Privasi"
+    },
+    {
+      "name": "permissions",
+      "value": "Izin"
+    },
+    {
+      "name": "storage",
+      "value": "Penyimpanan & cache"
+    },
+    {
+      "name": "help_feedback",
+      "value": "Bantuan & umpan balik"
+    },
+    {
+      "name": "legal",
+      "value": "Ketentuan & kebijakan"
+    },
+    {
+      "name": "about",
+      "value": "Tentang"
+    },
+    {
+      "name": "delete_account",
+      "value": "Hapus akun"
+    },
+    {
+      "name": "theme_system",
+      "value": "Ikuti sistem"
+    },
+    {
+      "name": "theme_light",
+      "value": "Terang"
+    },
+    {
+      "name": "theme_dark",
+      "value": "Gelap"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "Kecil"
+    },
+    {
+      "name": "text_standard",
+      "value": "Standar"
+    },
+    {
+      "name": "text_large",
+      "value": "Besar"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "Sangat besar"
+    },
+    {
+      "name": "save_settings",
+      "value": "Simpan pengaturan"
+    },
+    {
+      "name": "saving",
+      "value": "Menyimpan…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "Nama pengguna (tidak dapat diubah)"
+    },
+    {
+      "name": "display_name",
+      "value": "Nama tampilan"
+    },
+    {
+      "name": "bio",
+      "value": "Bio"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "Pilih avatar"
+    },
+    {
+      "name": "avatar_url",
+      "value": "Atau tempel URL avatar"
+    },
+    {
+      "name": "save_profile",
+      "value": "Simpan profil"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "GeekRead"
+    },
+    {
+      "name": "top_stories",
+      "value": "Pilihan"
+    },
+    {
+      "name": "latest_stories",
+      "value": "Terbaru"
+    },
+    {
+      "name": "refresh_success",
+      "value": "Disegarkan"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "Gagal menyegarkan"
+    },
+    {
+      "name": "load_failed",
+      "value": "Gagal memuat"
+    },
+    {
+      "name": "no_content",
+      "value": "Tidak ada konten"
+    },
+    {
+      "name": "no_more",
+      "value": "Tidak ada lagi"
+    },
+    {
+      "name": "loading_more",
+      "value": "Memuat…"
+    },
+    {
+      "name": "original_text",
+      "value": "Asli"
+    },
+    {
+      "name": "translated",
+      "value": "Diterjemahkan"
+    },
+    {
+      "name": "translation_failed",
+      "value": "Terjemahan gagal"
+    },
+    {
+      "name": "backend_hint",
+      "value": "Backend belum dikonfigurasi"
+    },
+    {
+      "name": "retry",
+      "value": "Coba lagi"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "Belum masuk"
+    },
+    {
+      "name": "login",
+      "value": "Masuk"
+    },
+    {
+      "name": "article",
+      "value": "Artikel"
+    },
+    {
+      "name": "points_comments",
+      "value": " poin · "
+    },
+    {
+      "name": "comments",
+      "value": "komentar"
+    },
+    {
+      "name": "read_original",
+      "value": "Baca asli ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[dihapus]"
+    }
+  ]
+}

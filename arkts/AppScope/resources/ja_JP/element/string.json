@@ -1,0 +1,272 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "GeekRead"
+    },
+    {
+      "name": "back",
+      "value": "戻る"
+    },
+    {
+      "name": "profile_title",
+      "value": "プロフィール"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "ログインしてデータを同期"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "メンバーシップ、注文、クーポン、設定を安全に同期します。"
+    },
+    {
+      "name": "sign_in_action",
+      "value": "ログインまたは新規登録"
+    },
+    {
+      "name": "profile_edit",
+      "value": "プロフィール編集"
+    },
+    {
+      "name": "membership",
+      "value": "メンバーシップ"
+    },
+    {
+      "name": "statistics",
+      "value": "利用統計"
+    },
+    {
+      "name": "orders",
+      "value": "注文"
+    },
+    {
+      "name": "settings",
+      "value": "設定"
+    },
+    {
+      "name": "sign_out",
+      "value": "ログアウト"
+    },
+    {
+      "name": "account_services",
+      "value": "アカウントとサービス"
+    },
+    {
+      "name": "preferences",
+      "value": "アプリ設定"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "プライバシー、ストレージ、サポート"
+    },
+    {
+      "name": "account_security",
+      "value": "アカウントとセキュリティ"
+    },
+    {
+      "name": "devices",
+      "value": "ログイン端末"
+    },
+    {
+      "name": "notification_settings",
+      "value": "通知"
+    },
+    {
+      "name": "general",
+      "value": "一般"
+    },
+    {
+      "name": "appearance",
+      "value": "外観"
+    },
+    {
+      "name": "language",
+      "value": "言語"
+    },
+    {
+      "name": "text_size",
+      "value": "文字サイズ"
+    },
+    {
+      "name": "privacy",
+      "value": "プライバシー"
+    },
+    {
+      "name": "permissions",
+      "value": "権限"
+    },
+    {
+      "name": "storage",
+      "value": "ストレージとキャッシュ"
+    },
+    {
+      "name": "help_feedback",
+      "value": "ヘルプとフィードバック"
+    },
+    {
+      "name": "legal",
+      "value": "規約とポリシー"
+    },
+    {
+      "name": "about",
+      "value": "このアプリについて"
+    },
+    {
+      "name": "delete_account",
+      "value": "アカウント削除"
+    },
+    {
+      "name": "theme_system",
+      "value": "システムに従う"
+    },
+    {
+      "name": "theme_light",
+      "value": "ライト"
+    },
+    {
+      "name": "theme_dark",
+      "value": "ダーク"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "小"
+    },
+    {
+      "name": "text_standard",
+      "value": "標準"
+    },
+    {
+      "name": "text_large",
+      "value": "大"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "特大"
+    },
+    {
+      "name": "save_settings",
+      "value": "設定を保存"
+    },
+    {
+      "name": "saving",
+      "value": "保存中…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "ユーザー名（変更不可）"
+    },
+    {
+      "name": "display_name",
+      "value": "表示名"
+    },
+    {
+      "name": "bio",
+      "value": "自己紹介"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "アバターを選択"
+    },
+    {
+      "name": "avatar_url",
+      "value": "またはアバターURLを貼り付け"
+    },
+    {
+      "name": "save_profile",
+      "value": "プロフィールを保存"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "GeekRead"
+    },
+    {
+      "name": "top_stories",
+      "value": "人気"
+    },
+    {
+      "name": "latest_stories",
+      "value": "最新"
+    },
+    {
+      "name": "refresh_success",
+      "value": "更新しました"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "更新に失敗"
+    },
+    {
+      "name": "load_failed",
+      "value": "読み込み失敗"
+    },
+    {
+      "name": "no_content",
+      "value": "コンテンツなし"
+    },
+    {
+      "name": "no_more",
+      "value": "これ以上ありません"
+    },
+    {
+      "name": "loading_more",
+      "value": "読み込み中…"
+    },
+    {
+      "name": "original_text",
+      "value": "原文"
+    },
+    {
+      "name": "translated",
+      "value": "訳"
+    },
+    {
+      "name": "translation_failed",
+      "value": "翻訳失敗"
+    },
+    {
+      "name": "backend_hint",
+      "value": "バックエンド未設定"
+    },
+    {
+      "name": "retry",
+      "value": "再試行"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "未ログイン"
+    },
+    {
+      "name": "login",
+      "value": "ログイン"
+    },
+    {
+      "name": "article",
+      "value": "記事"
+    },
+    {
+      "name": "points_comments",
+      "value": " ポイント · "
+    },
+    {
+      "name": "comments",
+      "value": "コメント"
+    },
+    {
+      "name": "read_original",
+      "value": "原文を読む ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[削除済み]"
+    }
+  ]
+}

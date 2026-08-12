@@ -1,0 +1,272 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "GeekRead"
+    },
+    {
+      "name": "back",
+      "value": "กลับ"
+    },
+    {
+      "name": "profile_title",
+      "value": "โปรไฟล์"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "เข้าสู่ระบบเพื่อซิงค์ข้อมูลของคุณ"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "สมาชิก ออเดอร์ คูปอง และการตั้งค่าจะซิงค์อย่างปลอดภัย"
+    },
+    {
+      "name": "sign_in_action",
+      "value": "เข้าสู่ระบบหรือสร้างบัญชี"
+    },
+    {
+      "name": "profile_edit",
+      "value": "แก้ไขโปรไฟล์"
+    },
+    {
+      "name": "membership",
+      "value": "สมาชิก"
+    },
+    {
+      "name": "statistics",
+      "value": "สถิติการใช้งาน"
+    },
+    {
+      "name": "orders",
+      "value": "ออเดอร์"
+    },
+    {
+      "name": "settings",
+      "value": "การตั้งค่า"
+    },
+    {
+      "name": "sign_out",
+      "value": "ออกจากระบบ"
+    },
+    {
+      "name": "account_services",
+      "value": "บัญชีและบริการ"
+    },
+    {
+      "name": "preferences",
+      "value": "การตั้งค่าแอป"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "ความเป็นส่วนตัว ที่เก็บข้อมูล และการสนับสนุน"
+    },
+    {
+      "name": "account_security",
+      "value": "บัญชีและความปลอดภัย"
+    },
+    {
+      "name": "devices",
+      "value": "อุปกรณ์ที่เข้าสู่ระบบ"
+    },
+    {
+      "name": "notification_settings",
+      "value": "การแจ้งเตือน"
+    },
+    {
+      "name": "general",
+      "value": "ทั่วไป"
+    },
+    {
+      "name": "appearance",
+      "value": "รูปลักษณ์"
+    },
+    {
+      "name": "language",
+      "value": "ภาษา"
+    },
+    {
+      "name": "text_size",
+      "value": "ขนาดตัวอักษร"
+    },
+    {
+      "name": "privacy",
+      "value": "ความเป็นส่วนตัว"
+    },
+    {
+      "name": "permissions",
+      "value": "สิทธิ์"
+    },
+    {
+      "name": "storage",
+      "value": "ที่เก็บข้อมูลและแคช"
+    },
+    {
+      "name": "help_feedback",
+      "value": "ช่วยเหลือและคำติชม"
+    },
+    {
+      "name": "legal",
+      "value": "ข้อกำหนดและนโยบาย"
+    },
+    {
+      "name": "about",
+      "value": "เกี่ยวกับ"
+    },
+    {
+      "name": "delete_account",
+      "value": "ลบบัญชี"
+    },
+    {
+      "name": "theme_system",
+      "value": "ตามระบบ"
+    },
+    {
+      "name": "theme_light",
+      "value": "สว่าง"
+    },
+    {
+      "name": "theme_dark",
+      "value": "มืด"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "เล็ก"
+    },
+    {
+      "name": "text_standard",
+      "value": "มาตรฐาน"
+    },
+    {
+      "name": "text_large",
+      "value": "ใหญ่"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "ใหญ่มาก"
+    },
+    {
+      "name": "save_settings",
+      "value": "บันทึกการตั้งค่า"
+    },
+    {
+      "name": "saving",
+      "value": "กำลังบันทึก…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "ชื่อผู้ใช้ (ไม่สามารถแก้ไขได้)"
+    },
+    {
+      "name": "display_name",
+      "value": "ชื่อที่แสดง"
+    },
+    {
+      "name": "bio",
+      "value": "ประวัติย่อ"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "เลือกรูปโปรไฟล์"
+    },
+    {
+      "name": "avatar_url",
+      "value": "หรือวาง URL รูปโปรไฟล์"
+    },
+    {
+      "name": "save_profile",
+      "value": "บันทึกโปรไฟล์"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "GeekRead"
+    },
+    {
+      "name": "top_stories",
+      "value": "ยอดนิยม"
+    },
+    {
+      "name": "latest_stories",
+      "value": "ล่าสุด"
+    },
+    {
+      "name": "refresh_success",
+      "value": "รีเฟรชแล้ว"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "รีเฟรชล้มเหลว"
+    },
+    {
+      "name": "load_failed",
+      "value": "โหลดล้มเหลว"
+    },
+    {
+      "name": "no_content",
+      "value": "ไม่มีเนื้อหา"
+    },
+    {
+      "name": "no_more",
+      "value": "ไม่มีอีกแล้ว"
+    },
+    {
+      "name": "loading_more",
+      "value": "กำลังโหลด…"
+    },
+    {
+      "name": "original_text",
+      "value": "ต้นฉบับ"
+    },
+    {
+      "name": "translated",
+      "value": "แปลแล้ว"
+    },
+    {
+      "name": "translation_failed",
+      "value": "การแปลล้มเหลว"
+    },
+    {
+      "name": "backend_hint",
+      "value": "ยังไม่ได้ตั้งค่า Backend"
+    },
+    {
+      "name": "retry",
+      "value": "ลองใหม่"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "ยังไม่ได้เข้าสู่ระบบ"
+    },
+    {
+      "name": "login",
+      "value": "เข้าสู่ระบบ"
+    },
+    {
+      "name": "article",
+      "value": "บทความ"
+    },
+    {
+      "name": "points_comments",
+      "value": " คะแนน · "
+    },
+    {
+      "name": "comments",
+      "value": "ความคิดเห็น"
+    },
+    {
+      "name": "read_original",
+      "value": "อ่านต้นฉบับ ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[ลบแล้ว]"
+    }
+  ]
+}
