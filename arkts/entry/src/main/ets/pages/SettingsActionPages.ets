@@ -91,10 +91,10 @@ export struct ChoicePreferencePage {
       PageHeader({ store: this.store, title: this.title() })
       Column({ space: AppSpacing.x3 }) {
         if (this.route === AppRoute.TextSize) {
-          // 字号用滑块（连续调节），显示当前值
+          // 字号用滑块（连续调节），显示当前档位名（不显示原始数值）
           Column({ space: AppSpacing.x4 }) {
             Row() {
-              Text(this.label(this.selected)).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
+              Text(this.scaleLabel(Number(this.selected))).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
             }
             Slider({ value: Number(this.selected), min: 0.85, max: 1.3, step: 0.05 })
               .blockColor(AppColors.brand)
@@ -131,6 +131,14 @@ export struct ChoicePreferencePage {
 
   private groupName(): string {
     return `pref_${this.route}`
+  }
+
+  // 字号档位名：把缩放值就近映射到 较小/标准/较大/特大（不显示 0.8500 等原始值）
+  private scaleLabel(scale: number): string {
+    if (scale <= 0.95) return appString(AppString.TextSmall, this.store.language)
+    if (scale <= 1.05) return appString(AppString.TextStandard, this.store.language)
+    if (scale <= 1.2) return appString(AppString.TextLarge, this.store.language)
+    return appString(AppString.TextExtraLarge, this.store.language)
   }
 
   private save(): void {
