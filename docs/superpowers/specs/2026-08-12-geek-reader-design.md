@@ -302,3 +302,16 @@ ArkTS 与 RN **无法共享运行时代码**。策略：**共享契约 + 各自�
 **仓库状态**
 - `geekread/`（main）：Plan 1–4 全部合并，commit 历史清晰（每 plan 独立分支 + merge）。
 - `MobileStarter/`（`feat/entitlement-signing` 分支，未合）：entitlement 签发端点 + .env，待用户决定合并。
+
+### 17.1 进度更新（继续推进后）
+
+下列原「待办」已**转为通过**：
+- ✅ **后端 HN 代理可达性**：加 `lib/proxy.ts`（undici `EnvHttpProxyAgent`），设 `HTTPS_PROXY` 即生效。本机经 `http://127.0.0.1:1081` 验证 stories(500 IDs)+items(Y Combinator) 端到端 200。
+- ✅ **ArkTS 编译/类型检查**：用 DevEco `hvigorw assembleHap` 实测，**BUILD SUCCESSFUL**，产出 `entry-default-unsigned.hap`（仅签名缺，预期）。修复了 LocalStore 导入深度（`../../../`）与 GeekReaderPage 缺 AppRoute 导入。
+- ✅ **RN web 打包**：`npx expo export -p web` exit 0，web bundle 成功产出（geek-reader 模块 + GeekReaderProvider + app_id 接线全部编入）。
+
+仍待办（需外部资源）：
+- ⏳ ArkTS 真机/模拟器渲染：需在 DevEco 内启动设备。
+- ⏳ 真实 LLM 译文闭环：需配 `MODEL_API_URL/KEY/NAME`（model.ts 单测已 mock 覆盖）。
+- ⏳ MobileStarter entitlement 分支合并：待用户决定（共享模板 repo）。
+- v2：搜索 / 离线+历史 / 外链网页沉浸翻译 / 推送 / 内容举报。
