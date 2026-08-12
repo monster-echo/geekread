@@ -3,12 +3,13 @@ import { deriveTargetLanguage } from '../application/Locale'
 import { translate } from '../application/TranslationCache'
 import { TargetLanguage } from '../domain/Models'
 
-const LANG_LABEL: Record<TargetLanguage, string> = {
-  'en': 'English',
-  'ja': '日本語',
-  'ko': '한국어',
-  'zh-Hans': '简体中文',
-  'zh-Hant': '繁體中文',
+function labelOf(lang: TargetLanguage | null): string {
+  if (lang === 'zh-Hans') return '简体中文'
+  if (lang === 'zh-Hant') return '繁體中文'
+  if (lang === 'ja') return '日本語'
+  if (lang === 'ko') return '한국어'
+  if (lang === 'en') return 'English'
+  return '简体中文'
 }
 
 @Component
@@ -18,23 +19,25 @@ export struct ImmersiveTranslation {
   @State result: string = ''
   @State loading: boolean = false
   @State failed: boolean = false
-  @State armed: boolean = false
 
   private get lang(): TargetLanguage | null {
-    return deriveTargetLanguage(this.locale)
-  }
-
-  private get langLabel(): string {
-    const l = this.lang
-    return l === null ? '' : LANG_LABEL[l]
+    return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
   }
 
   private doTranslate(): void {
     const l = this.lang
     if (l === null) return
     this.loading = true
+    this.failed = false
     translate(this.text, l)
-      .then((t: string) => { this.result = t; this.loading = false })
+      .then((t: string) => {
+        if (typeof t === 'string' && t.length > 0 && t !== 'undefined') {
+          this.result = t
+        } else {
+          this.failed = true
+        }
+        this.loading = false
+      })
       .catch(() => { this.failed = true; this.loading = false })
   }
 
@@ -45,12 +48,12 @@ export struct ImmersiveTranslation {
         .fontColor(AppColors.text)
         .width('100%')
       if (this.lang === null) {
-        // 源语言（en/其它）不译，只显原文。
+        // 源语言（en 等）不译，只显原文
       } else if (this.loading) {
         LoadingProgress().width(20).height(20)
       } else if (this.result.length > 0) {
         Column({ space: AppSpacing.x1 }) {
-          Text(`译 · ${this.langLabel}`)
+          Text(`译 · ${labelOf(this.lang)}`)
             .fontSize(11)
             .fontColor(AppColors.brand)
           Text(this.result)
@@ -63,9 +66,9 @@ export struct ImmersiveTranslation {
         .padding({ left: AppSpacing.x2 })
         .width('100%')
       } else if (this.failed) {
-        Text('翻译失败').fontSize(11).fontColor(AppColors.textSecondary)
+        Text('翻译失败（后端未配 LLM）').fontSize(11).fontColor(AppColors.textSecondary)
       } else {
-        Button(`译 · ${this.langLabel}`)
+        Button(`译 · ${labelOf(this.lang)}`)
           .type(ButtonType.Normal)
           .backgroundColor(AppColors.brandSoft)
           .fontColor(AppColors.brand)
