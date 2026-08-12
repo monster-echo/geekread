@@ -14,37 +14,28 @@ const PAGE: number = 20
 @Component
 export struct GeekReaderPage {
   @ObjectLink store: AppStore
-  @State topStories: Story[] = []
-  @State latestStories: Story[] = []
-  @State topStatus: AsyncStatus = AsyncStatus.Idle
-  @State latestStatus: AsyncStatus = AsyncStatus.Idle
+  @State stories: Story[] = []
+  @State status: AsyncStatus = AsyncStatus.Idle
   @State tab: string = 'top'
   @State errorMessage: string = ''
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
 
   aboutToAppear(): void {
-    this.load('top')
+    this.load(this.tab)
   }
 
   private async load(type: string): Promise<void> {
-    if (type === 'top') this.topStatus = AsyncStatus.Loading
-    else this.latestStatus = AsyncStatus.Loading
+    this.status = AsyncStatus.Loading
     try {
       const ids = await fetchStories(type)
       const slice = ids.ids.slice(0, PAGE)
-      const stories = await fetchStoriesResolved(slice)
-      if (type === 'top') {
-        this.topStories = stories
-        this.topStatus = stories.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success
-      } else {
-        this.latestStories = stories
-        this.latestStatus = stories.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success
-      }
+      const result = await fetchStoriesResolved(slice)
+      this.stories = result
+      this.status = result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success
     } catch (e) {
       this.errorMessage = e instanceof Error ? e.message : '网络错误'
-      if (type === 'top') this.topStatus = AsyncStatus.Error
-      else this.latestStatus = AsyncStatus.Error
+      this.status = AsyncStatus.Error
     } finally {
       this.refreshing = false
     }
@@ -54,21 +45,19 @@ export struct GeekReaderPage {
     this.refreshing = true
     this.vibrate()
     this.load(this.tab).then(() => {
-      const ok = this.currentStatus === AsyncStatus.Success
+      const ok = this.status === AsyncStatus.Success
       this.store.showToast(ok ? '已刷新' : '刷新失败', !ok)
     })
   }
 
+  private switchTab(type: string): void {
+    if (this.tab === type) return
+    this.tab = type
+    this.load(type)
+  }
+
   private vibrate(): void {
     try { vibrator.startVibration({ type: 'time', duration: 18 }, { id: 0, usage: 'notification' }) } catch (e) {}
-  }
-
-  private get currentStories(): Story[] {
-    return this.tab === 'top' ? this.topStories : this.latestStories
-  }
-
-  private get currentStatus(): AsyncStatus {
-    return this.tab === 'top' ? this.topStatus : this.latestStatus
   }
 
   private openStory(id: number): void {
@@ -109,69 +98,73 @@ export struct GeekReaderPage {
   }
 
   @Builder
-  ReaderContent() {
-    Column() {
-      // 顶栏：标题居中（抽屉开关用原生 SideBarContainer 控制按钮）
-      Row() {
-        Blank().width(48)
-        Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
-          .layoutWeight(1).textAlign(TextAlign.Center)
-        Blank().width(48)
-      }.width('100%').height(56).padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
-      .border({ width: { bottom: 1 }, color: AppColors.border })
-
-      Row() {
-        Text('精选').padding(AppSpacing.x4)
-          .fontColor(this.tab === 'top' ? AppColors.brand : AppColors.text)
-          .fontWeight(this.tab === 'top' ? FontWeight.Bold : FontWeight.Normal)
-          .onClick(() => { this.tab = 'top' })
-        Text('最新').padding(AppSpacing.x4)
-          .fontColor(this.tab === 'latest' ? AppColors.brand : AppColors.text)
-          .fontWeight(this.tab === 'latest' ? FontWeight.Bold : FontWeight.Normal)
-          .onClick(() => { this.tab = 'latest'; if (this.latestStatus === AsyncStatus.Idle) this.load('latest') })
-      }.width('100%')
-
-      if (this.currentStatus === AsyncStatus.Loading) {
-        Column() { LoadingProgress().width(48).height(48).color(AppColors.brand) }
-          .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
-      } else if (this.currentStatus === AsyncStatus.Empty || this.currentStatus === AsyncStatus.Error) {
-        Column({ space: AppSpacing.x3 }) {
-          AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
-          Text(this.currentStatus === AsyncStatus.Error ? `加载失败：${this.errorMessage}` : '暂无内容，下拉刷新重试')
-            .fontColor(AppColors.textSecondary).fontSize(14).textAlign(TextAlign.Center)
-            .padding({ left: AppSpacing.x6, right: AppSpacing.x6 })
-          Text('后端 192.168.20.120:8787').fontColor(AppColors.border).fontSize(11)
-          Button('重试').onClick(() => this.refresh())
-        }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
-      } else {
-        Refresh({ refreshing: $$this.refreshing }) {
-          List({ space: AppSpacing.x3 }) {
-            ForEach(this.currentStories, (s: Story) => {
-              ListItem() {
-                Column({ space: AppSpacing.x1 }) {
-                  ImmersiveTranslation({ text: s.title, locale: this.store.language })
-                  Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
-                    .fontSize(12).fontColor(AppColors.textSecondary)
-                }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
-                .border({ width: { bottom: 1 }, color: AppColors.border })
-              }.onClick(() => this.openStory(s.id))
-            }, (s: Story) => `${s.id}`)
-          }
-        }.onRefreshing(() => this.refresh()).layoutWeight(1)
-      }
-    }.width('100%').height('100%')
+  StoryItem(s: Story) {
+    Column({ space: AppSpacing.x1 }) {
+      ImmersiveTranslation({ text: s.title, locale: this.store.language })
+      Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
+        .fontSize(12).fontColor(AppColors.textSecondary)
+    }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
+    .border({ width: { bottom: 1 }, color: AppColors.border })
   }
 
   build() {
-    // 原生 SideBarContainer：左抽屉 + 主内容；autoHide 点击遮罩收起，左滑手势原生支持。
     SideBarContainer() {
       this.DrawerMenu()
-      this.ReaderContent()
+      Column() {
+        // 顶栏：汉堡 + 标题
+        Row() {
+          Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
+            .width(48).height(48).justifyContent(FlexAlign.Center)
+            .onClick(() => { this.vibrate(); this.drawerOpen = true })
+          Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+            .layoutWeight(1).textAlign(TextAlign.Center)
+          Blank().width(48)
+        }.width('100%').height(56).padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
+        .border({ width: { bottom: 1 }, color: AppColors.border })
+
+        // Tab
+        Row() {
+          Text('精选').padding(AppSpacing.x4)
+            .fontColor(this.tab === 'top' ? AppColors.brand : AppColors.text)
+            .fontWeight(this.tab === 'top' ? FontWeight.Bold : FontWeight.Normal)
+            .onClick(() => this.switchTab('top'))
+          Text('最新').padding(AppSpacing.x4)
+            .fontColor(this.tab === 'latest' ? AppColors.brand : AppColors.text)
+            .fontWeight(this.tab === 'latest' ? FontWeight.Bold : FontWeight.Normal)
+            .onClick(() => this.switchTab('latest'))
+        }.width('100%')
+
+        if (this.status === AsyncStatus.Loading) {
+          Column() { LoadingProgress().width(48).height(48).color(AppColors.brand) }
+            .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
+        } else if (this.status === AsyncStatus.Empty) {
+          Column({ space: AppSpacing.x3 }) {
+            AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+            Text('暂无内容，下拉刷新重试').fontColor(AppColors.textSecondary).fontSize(14)
+          }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
+        } else if (this.status === AsyncStatus.Error) {
+          Column({ space: AppSpacing.x3 }) {
+            AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+            Text(`加载失败：${this.errorMessage}`).fontColor(AppColors.textSecondary).fontSize(14)
+              .padding({ left: AppSpacing.x6, right: AppSpacing.x6 }).textAlign(TextAlign.Center)
+            Button('重试').onClick(() => this.refresh())
+          }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
+        } else {
+          Refresh({ refreshing: $$this.refreshing }) {
+            List({ space: AppSpacing.x3 }) {
+              ForEach(this.stories, (s: Story) => {
+                ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+              }, (s: Story) => `${s.id}`)
+            }
+          }.onRefreshing(() => this.refresh()).layoutWeight(1)
+        }
+      }.width('100%').height('100%')
     }
     .showSideBar(this.drawerOpen)
     .sideBarPosition(SideBarPosition.Start)
     .sideBarWidth('78%')
     .autoHide(true)
+    .showControlButton(false)
     .onChange((show: boolean) => { this.drawerOpen = show })
     .width('100%').height('100%')
   }
