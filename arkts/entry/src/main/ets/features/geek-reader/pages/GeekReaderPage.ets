@@ -11,7 +11,7 @@ import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 
 const PAGE: number = 20
 
-// 模块级缓存：从文章详情返回时不重新请求，直接还原列表数据。
+// 模块级缓存：跨页面导航（进/出文章详情）保留 tab、滚动位置、已加载数据。
 class TabCache {
   stories: Story[] = []
   status: AsyncStatus = AsyncStatus.Idle
@@ -20,6 +20,9 @@ class TabCache {
 class GeekCache {
   top: TabCache = new TabCache()
   latest: TabCache = new TabCache()
+  activeTab: number = 0
+  scrollTop: number = 0
+  scrollLatest: number = 0
 }
 const cache: GeekCache = new GeekCache()
 
@@ -30,16 +33,25 @@ export struct GeekReaderPage {
   @State topStatus: AsyncStatus = cache.top.status
   @State latestStories: Story[] = cache.latest.stories
   @State latestStatus: AsyncStatus = cache.latest.status
-  @State activeTab: number = 0
+  @State activeTab: number = cache.activeTab
   @State errorMessage: string = ''
   @State headerVisible: boolean = true
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
+  private topScroller: Scroller = new Scroller()
+  private latestScroller: Scroller = new Scroller()
+  private restored: boolean = false
 
   aboutToAppear(): void {
-    // 还原缓存；未加载过的 tab 才发请求。
     if (!cache.top.loaded) this.load('top')
     if (!cache.latest.loaded) this.load('latest')
+    // 还原滚动位置（等列表布局完成）
+    setTimeout(() => {
+      const y = cache.activeTab === 0 ? cache.scrollTop : cache.scrollLatest
+      const sc = cache.activeTab === 0 ? this.topScroller : this.latestScroller
+      if (y > 0) sc.scrollTo({ xOffset: 0, yOffset: y })
+      this.restored = true
+    }, 300)
   }
 
   private async load(type: string): Promise<void> {
@@ -88,6 +100,10 @@ export struct GeekReaderPage {
   }
 
   private openStory(id: number): void {
+    // 离开前保存当前 tab 的滚动位置
+    const off = this.activeTab === 0 ? this.topScroller.currentOffset() : this.latestScroller.currentOffset()
+    if (this.activeTab === 0) cache.scrollTop = off.yOffset; else cache.scrollLatest = off.yOffset
+    cache.activeTab = this.activeTab
     this.store.geekReaderStoryId = id
     this.store.navigate(AppRoute.GeekReaderDetail)
   }
@@ -95,6 +111,11 @@ export struct GeekReaderPage {
   private goto(route: AppRoute): void {
     this.drawerOpen = false
     this.store.navigate(route)
+  }
+
+  private onScrollDir(offset: number): void {
+    if (offset > 1) this.headerVisible = false
+    else if (offset < -1) this.headerVisible = true
   }
 
   @Builder
@@ -152,25 +173,6 @@ export struct GeekReaderPage {
     }
   }
 
-  @Builder
-  TabList(stories: Story[], status: AsyncStatus, msg: string) {
-    if (status === AsyncStatus.Success) {
-      Refresh({ refreshing: $$this.refreshing }) {
-        List({ space: AppSpacing.x3 }) {
-          ForEach(stories, (s: Story) => {
-            ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
-          }, (s: Story) => `${s.id}`)
-        }
-        .onScroll((offset: number, state: ScrollState) => {
-          if (offset > 1) this.headerVisible = false
-          else if (offset < -1) this.headerVisible = true
-        })
-      }.onRefreshing(() => this.refresh()).layoutWeight(1)
-    } else {
-      this.StatusView(status, msg)
-    }
-  }
-
   build() {
     SideBarContainer() {
       this.DrawerMenu()
@@ -188,16 +190,38 @@ export struct GeekReaderPage {
         .border({ width: { bottom: this.headerVisible ? 1 : 0 }, color: AppColors.border })
         .clip(true).animation({ duration: 220, curve: Curve.EaseOut })
 
-        // 原生 Tabs：左右滑动切换 精选/最新
         Tabs({ barPosition: BarPosition.Start, index: this.activeTab }) {
           TabContent() {
-            this.TabList(this.topStories, this.topStatus, this.errorMessage)
+            if (this.topStatus === AsyncStatus.Success) {
+              Refresh({ refreshing: $$this.refreshing }) {
+                List({ scroller: this.topScroller, space: AppSpacing.x3 }) {
+                  ForEach(this.topStories, (s: Story) => {
+                    ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+                  }, (s: Story) => `${s.id}`)
+                }
+                .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+              }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
+            } else {
+              this.StatusView(this.topStatus, this.errorMessage)
+            }
           }.tabBar('精选')
+
           TabContent() {
-            this.TabList(this.latestStories, this.latestStatus, this.errorMessage)
+            if (this.latestStatus === AsyncStatus.Success) {
+              Refresh({ refreshing: $$this.refreshing }) {
+                List({ scroller: this.latestScroller, space: AppSpacing.x3 }) {
+                  ForEach(this.latestStories, (s: Story) => {
+                    ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+                  }, (s: Story) => `${s.id}`)
+                }
+                .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+              }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
+            } else {
+              this.StatusView(this.latestStatus, this.errorMessage)
+            }
           }.tabBar('最新')
         }
-        .onChange((i: number) => { this.activeTab = i })
+        .onChange((i: number) => { this.activeTab = i; cache.activeTab = i })
         .barMode(BarMode.Fixed)
         .scrollable(true)
         .layoutWeight(1).width('100%')
