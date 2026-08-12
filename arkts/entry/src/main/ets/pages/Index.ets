@@ -24,6 +24,7 @@ import {
 } from './SupportPages'
 import { GeekReaderPage } from '../features/geek-reader/pages/GeekReaderPage'
 import { StoryDetailPage } from '../features/geek-reader/pages/StoryDetailPage'
+import { LanguagePreferencePage } from './LanguagePreferencePage'
 
 @Entry
 @Component
@@ -83,7 +84,9 @@ struct Index {
       NavDestination() { LegalDocumentPage({ store: this.store, type: 'privacy' }) }.title('隐私政策').hideTitleBar(false)
     } else if (name === `route_${AppRoute.TermsOfService}`) {
       NavDestination() { LegalDocumentPage({ store: this.store, type: 'terms' }) }.title('用户协议').hideTitleBar(false)
-    } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.Language}` || name === `route_${AppRoute.TextSize}` || name === `route_${AppRoute.TranslationDisplay}`) {
+    } else if (name === `route_${AppRoute.Language}`) {
+      NavDestination() { LanguagePreferencePage({ store: this.store }) }.title('语言').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Appearance}` || name === `route_${AppRoute.TextSize}` || name === `route_${AppRoute.TranslationDisplay}`) {
       NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Storage}` || name === `route_${AppRoute.Permissions}`) {
       NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)

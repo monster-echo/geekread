@@ -31,8 +31,7 @@ export struct SettingsPage {
               AppRoute.General,
               AppRoute.Appearance,
               AppRoute.Language,
-              AppRoute.TextSize,
-              AppRoute.TranslationDisplay
+              AppRoute.TextSize
             ])
           })
           SettingsGroup({
@@ -116,7 +115,6 @@ struct SettingsGroup {
       case AppRoute.Appearance: return appString(AppString.Appearance, this.store.language)
       case AppRoute.Language: return appString(AppString.Language, this.store.language)
       case AppRoute.TextSize: return appString(AppString.TextSize, this.store.language)
-      case AppRoute.TranslationDisplay: return appString(AppString.TranslationDisplay, this.store.language)
       case AppRoute.Privacy: return appString(AppString.Privacy, this.store.language)
       case AppRoute.Permissions: return appString(AppString.Permissions, this.store.language)
       case AppRoute.Storage: return appString(AppString.Storage, this.store.language)
