@@ -1,35 +1,5 @@
-import { cloudFunction } from '@kit.CloudFoundationKit'
 import { TargetLanguage } from '../domain/Models'
-import { TranslateRequest, TranslateResponse, TranslateEntry } from '../data/GeekReaderApiClient'
-import { localStore } from '../../../data/LocalStore'
-
-interface CloudTranslateInput {
-  operation: string
-  targetLanguage: TargetLanguage
-  entries: TranslateEntry[]
-  clientId: string
-  entitlementToken: string
-}
-
-// 复用已部署的 AGC 云函数 greekread-backend（环境变量里已配好 MaaS）做翻译，无需本地 MaaS key。
-async function translateViaCloud(req: TranslateRequest): Promise<TranslateResponse> {
-  const input: CloudTranslateInput = {
-    operation: 'translateBatch',
-    targetLanguage: req.targetLanguage,
-    entries: req.entries,
-    clientId: localStore.installationId(),
-    entitlementToken: '',
-  }
-  const res = await cloudFunction.call({
-    name: 'greekread-backend',
-    version: '$latest',
-    data: input,
-    timeout: 30000,
-  })
-  const value = res.result
-  if (typeof value === 'string') return JSON.parse(value) as TranslateResponse
-  return value as TranslateResponse
-}
+import { translateBatch, TranslateRequest, TranslateResponse, TranslateEntry } from '../data/GeekReaderApiClient'
 
 interface Pending {
   text: string
@@ -99,7 +69,7 @@ async function flush(): Promise<void> {
       }
       const req: TranslateRequest = { targetLanguage: lang, entries }
       try {
-        const res: TranslateResponse = await translateViaCloud(req)
+        const res: TranslateResponse = await translateBatch(req)
         for (let pi = 0; pi < chunk.length; pi++) {
           const p = chunk[pi]
           const r = res.results[pi]
