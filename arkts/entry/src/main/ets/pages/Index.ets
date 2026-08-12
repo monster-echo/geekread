@@ -97,6 +97,12 @@ struct Index {
       NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.HelpFeedback}`) {
       NavDestination() { SupportHomePage({ store: this.store, remote: this.store.remote }) }.title('帮助与反馈').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.SupportTicket}`) {
+      NavDestination() { SupportTicketPage({ store: this.store, remote: this.store.remote }) }.title('工单详情').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.NewSupportTicket}`) {
+      NavDestination() { NewSupportTicketPage({ store: this.store }) }.title('联系客服').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.ProductFeedback}`) {
+      NavDestination() { ProductFeedbackPage({ store: this.store }) }.title('产品反馈').hideTitleBar(false)
     } else if (name === `route_${AppRoute.AccountSecurity}`) {
       NavDestination() { AccountSecurityPage({ store: this.store }) }.title('账户与安全').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Devices}`) {
