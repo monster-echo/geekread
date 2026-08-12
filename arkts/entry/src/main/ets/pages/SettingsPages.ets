@@ -74,6 +74,7 @@ export struct SettingsPage {
     if (route === AppRoute.Appearance || route === AppRoute.TextSize) return 'appearance'
     if (route === AppRoute.Language) return 'language'
     if (route === AppRoute.Privacy) return 'analytics'
+    if (route === AppRoute.Permissions) return 'permissions'
     if (route === AppRoute.DeleteAccount) return 'accountDeletion'
     if (route === AppRoute.Membership) return 'membership'
     if (route === AppRoute.AccountSecurity) return 'accountSecurity'
