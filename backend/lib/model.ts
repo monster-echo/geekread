@@ -1,3 +1,5 @@
+import './proxy';
+
 const supportedLanguages = new Map<string, string>([
   ['en', 'English'],
   ['ja', 'Japanese'],

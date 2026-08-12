@@ -1,3 +1,4 @@
+import './proxy';
 import { getJsonCache, setJsonCache } from './storage';
 
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
