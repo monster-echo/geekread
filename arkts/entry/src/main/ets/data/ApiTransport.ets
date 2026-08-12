@@ -13,8 +13,8 @@ import {
   SignUpInput
 } from '../domain/Models'
 
-const API_BASE: string = 'http://192.168.20.110:3210'
-const APP_ID: string = 'mobileui'
+const API_BASE: string = 'http://192.168.20.120:3210'
+const APP_ID: string = 'geekread'
 const APP_ENVIRONMENT: string = 'development'
 
 export interface SocialSignInInput {
