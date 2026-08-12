@@ -361,17 +361,22 @@ export class AppStore {
   }
 
   async saveSetting(key: string, value: string | number | boolean): Promise<boolean> {
-    if (!this.signedIn || this.busy) {
+    if (this.busy) {
       return false
     }
     this.busy = true
     const patch: Record<string, string | number | boolean> = {}
     patch[key] = value
+    // 本地偏好不依赖登录：未登录也立即生效。
     if (typeof value !== 'boolean') localStore.savePreference(key, value)
     if (this.user !== null) {
       this.user.settings[key] = value
     }
     this.applyPreferences()
+    if (!this.signedIn) {
+      this.busy = false
+      return true
+    }
     try {
       const settings = await apiClient.saveSettings(patch)
       if (this.user !== null) {
