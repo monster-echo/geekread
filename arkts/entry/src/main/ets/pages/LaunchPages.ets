@@ -80,7 +80,8 @@ export struct SplashPage {
   goHome(): void {
     if (this.done) return
     this.done = true
-    this.store.replaceAll(AppRoute.Home)
+    // 极客译读是单用途 app，直接进阅读器（壳的辅助功能在汉堡抽屉里）。
+    this.store.replaceAll(AppRoute.GeekReader)
   }
 
   build() {

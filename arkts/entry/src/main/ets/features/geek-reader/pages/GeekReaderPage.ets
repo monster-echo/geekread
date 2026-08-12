@@ -2,15 +2,14 @@ import vibrator from '@ohos.vibrator'
 import { AppStore } from '../../../state/AppStore'
 import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
-import { PageHeader } from '../../../design_system/Components'
 import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
 import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
+import { localized } from '../../../localization/AppStrings'
 import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 
 const PAGE: number = 20
-const SKELETON_COUNT: number = 8
 
 @Component
 export struct GeekReaderPage {
@@ -22,6 +21,7 @@ export struct GeekReaderPage {
   @State tab: string = 'top'
   @State errorMessage: string = ''
   @State refreshing: boolean = false
+  @State drawerOpen: boolean = false
 
   aboutToAppear(): void {
     this.load('top')
@@ -42,7 +42,7 @@ export struct GeekReaderPage {
         this.latestStatus = stories.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success
       }
     } catch (e) {
-      this.errorMessage = e instanceof Error ? e.message : '加载失败'
+      this.errorMessage = e instanceof Error ? e.message : '网络错误'
       if (type === 'top') this.topStatus = AsyncStatus.Error
       else this.latestStatus = AsyncStatus.Error
     } finally {
@@ -60,11 +60,7 @@ export struct GeekReaderPage {
   }
 
   private vibrate(): void {
-    try {
-      vibrator.startVibration({ type: 'time', duration: 18 }, { id: 0, usage: 'notification' })
-    } catch (e) {
-      // 无震动权限或硬件不支持时忽略
-    }
+    try { vibrator.startVibration({ type: 'time', duration: 18 }, { id: 0, usage: 'notification' }) } catch (e) {}
   }
 
   private get currentStories(): Story[] {
@@ -80,68 +76,75 @@ export struct GeekReaderPage {
     this.store.navigate(AppRoute.GeekReaderDetail)
   }
 
-  @Builder
-  SkeletonRow() {
-    Column({ space: AppSpacing.x1 }) {
-      Row().width('90%').height(18).borderRadius(AppRadii.small).backgroundColor(AppColors.surfaceMuted)
-      Row().width('55%').height(18).borderRadius(AppRadii.small).backgroundColor(AppColors.surfaceMuted)
-      Row().width('40%').height(12).borderRadius(AppRadii.small).backgroundColor(AppColors.border)
-    }
-    .alignItems(HorizontalAlign.Start)
-    .padding(AppSpacing.x4)
-    .border({ width: { bottom: 1 }, color: AppColors.border })
+  private goto(route: AppRoute): void {
+    this.drawerOpen = false
+    this.store.navigate(route)
   }
 
   @Builder
-  EmptyState(message: string) {
-    Column({ space: AppSpacing.x3 }) {
-      AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
-      Text(message)
-        .fontColor(AppColors.textSecondary)
-        .fontSize(14)
-        .textAlign(TextAlign.Center)
-        .padding({ left: AppSpacing.x6, right: AppSpacing.x6 })
-      Text('后端：192.168.20.120:8787（手机需与 Mac 同一 WiFi）')
-        .fontColor(AppColors.border)
-        .fontSize(11)
-        .textAlign(TextAlign.Center)
-      Button('重试').onClick(() => this.refresh())
-    }
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .layoutWeight(1)
-  }
-
-  build() {
+  DrawerMenu() {
     Column() {
-      PageHeader({ store: this.store, title: '极客译读' })
+      Column({ space: AppSpacing.x1 }) {
+        Text(this.store.signedIn ? (this.store.user?.displayName ?? '已登录') : '未登录')
+          .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+        Text(this.store.signedIn ? '' : '点击登录').fontSize(12).fontColor(AppColors.brand)
+      }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
+      .onClick(() => this.goto(this.store.signedIn ? AppRoute.Profile : AppRoute.SignIn))
+
+      this.MenuRow(localized('设置', 'Settings', this.store.language), AppRoute.Settings)
+      this.MenuRow(localized('关于与版本', 'About', this.store.language), AppRoute.About)
+      this.MenuRow(localized('协议与政策', 'Legal', this.store.language), AppRoute.Legal)
+      Blank()
+      Text('GeekRead · 极客译读').fontSize(11).fontColor(AppColors.textSecondary).padding(AppSpacing.x5)
+    }.width('100%').height('100%').backgroundColor(AppColors.surface).alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  MenuRow(title: string, route: AppRoute) {
+    Row({ space: AppSpacing.x3 }) {
+      Text(title).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
+      AppIcon({ name: AppIconName.ChevronRight, iconSize: 18, color: AppColors.textSecondary })
+    }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 })
+    .onClick(() => this.goto(route))
+  }
+
+  @Builder
+  ReaderContent() {
+    Column() {
+      // 顶栏：汉堡 + 标题
       Row() {
-        Text('精选')
-          .padding(AppSpacing.x4)
+        Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
+          .width(48).height(48).justifyContent(FlexAlign.Center)
+          .onClick(() => { this.vibrate(); this.drawerOpen = true })
+        Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+          .layoutWeight(1).textAlign(TextAlign.Center)
+        Blank().width(48)
+      }.width('100%').height(56).padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
+      .border({ width: { bottom: 1 }, color: AppColors.border })
+
+      Row() {
+        Text('精选').padding(AppSpacing.x4)
           .fontColor(this.tab === 'top' ? AppColors.brand : AppColors.text)
           .fontWeight(this.tab === 'top' ? FontWeight.Bold : FontWeight.Normal)
           .onClick(() => { this.tab = 'top' })
-        Text('最新')
-          .padding(AppSpacing.x4)
+        Text('最新').padding(AppSpacing.x4)
           .fontColor(this.tab === 'latest' ? AppColors.brand : AppColors.text)
           .fontWeight(this.tab === 'latest' ? FontWeight.Bold : FontWeight.Normal)
-          .onClick(() => {
-            this.tab = 'latest'
-            if (this.latestStatus === AsyncStatus.Idle) this.load('latest')
-          })
+          .onClick(() => { this.tab = 'latest'; if (this.latestStatus === AsyncStatus.Idle) this.load('latest') })
       }.width('100%')
 
       if (this.currentStatus === AsyncStatus.Loading) {
-        // 骨架屏：8 行灰色占位
-        List({ space: AppSpacing.x3 }) {
-          ForEach([0, 1, 2, 3, 4, 5, 6, 7], (i: number) => {
-            ListItem() { this.SkeletonRow() }
-          }, (i: number) => `sk-${i}`)
-        }.layoutWeight(1)
-      } else if (this.currentStatus === AsyncStatus.Empty) {
-        this.EmptyState('暂无内容，下拉刷新重试')
-      } else if (this.currentStatus === AsyncStatus.Error) {
-        this.EmptyState(`加载失败：${this.errorMessage}`)
+        Column() { LoadingProgress().width(48).height(48).color(AppColors.brand) }
+          .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
+      } else if (this.currentStatus === AsyncStatus.Empty || this.currentStatus === AsyncStatus.Error) {
+        Column({ space: AppSpacing.x3 }) {
+          AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
+          Text(this.currentStatus === AsyncStatus.Error ? `加载失败：${this.errorMessage}` : '暂无内容，下拉刷新重试')
+            .fontColor(AppColors.textSecondary).fontSize(14).textAlign(TextAlign.Center)
+            .padding({ left: AppSpacing.x6, right: AppSpacing.x6 })
+          Text('后端 192.168.20.120:8787').fontColor(AppColors.border).fontSize(11)
+          Button('重试').onClick(() => this.refresh())
+        }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
       } else {
         Refresh({ refreshing: $$this.refreshing }) {
           List({ space: AppSpacing.x3 }) {
@@ -151,18 +154,27 @@ export struct GeekReaderPage {
                   ImmersiveTranslation({ text: s.title, locale: this.store.language })
                   Text(`${s.score} 分 · ${s.by} · ${s.commentsCount} 评论`)
                     .fontSize(12).fontColor(AppColors.textSecondary)
-                }
-                .alignItems(HorizontalAlign.Start)
-                .padding(AppSpacing.x4)
+                }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
                 .border({ width: { bottom: 1 }, color: AppColors.border })
-              }
-              .onClick(() => this.openStory(s.id))
+              }.onClick(() => this.openStory(s.id))
             }, (s: Story) => `${s.id}`)
           }
-        }
-        .onRefreshing(() => this.refresh())
-        .layoutWeight(1)
+        }.onRefreshing(() => this.refresh()).layoutWeight(1)
       }
     }.width('100%').height('100%')
+  }
+
+  build() {
+    // 原生 SideBarContainer：左抽屉 + 主内容；autoHide 点击遮罩收起，左滑手势原生支持。
+    SideBarContainer() {
+      this.DrawerMenu()
+      this.ReaderContent()
+    }
+    .showSideBar(this.drawerOpen)
+    .sideBarPosition(SideBarPosition.Start)
+    .sideBarWidth('78%')
+    .autoHide(true)
+    .onChange((show: boolean) => { this.drawerOpen = show })
+    .width('100%').height('100%')
   }
 }
