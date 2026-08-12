@@ -56,8 +56,6 @@ export class AppStore {
   }
 
   routeStack: AppRoute[] = [AppRoute.Logo]
-  // 可选原生 Navigation 钩子：被阅读器等设置后，navigate/back 走压栈而非壳 switch。
-  navStack: NavPathStack | null = null
   signedIn: boolean = false
   online: boolean = true
   // bootstrapped：初始 bootstrap 是否完成（成功或失败）；品牌闪屏据此判断"配置拉取完成"。
@@ -174,11 +172,6 @@ export class AppStore {
   }
 
   navigate(route: AppRoute): void {
-    if (this.navStack !== null) {
-      // 走原生 Navigation 压栈：源页面（阅读器）保留，返回不销毁。
-      this.navStack.pushPathByName(this.routeName(route), route)
-      return
-    }
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
     if (decision.unavailable) this.showToast('当前 App 未启用此功能')
@@ -244,20 +237,11 @@ export class AppStore {
   }
 
   back(): void {
-    if (this.navStack !== null) {
-      this.navStack.pop()
-      return
-    }
     if (!this.canGoBack) {
       return
     }
     this.routeStack = this.routeStack.slice(0, this.routeStack.length - 1)
     telemetry.screen(this.route.toString())
-  }
-
-  private routeName(route: AppRoute): string {
-    // 非设置类走通用 detail 压栈；设置类在 NavDestination 里按 param route 分发
-    return `settings_${route}`
   }
 
   async signIn(email: string, password: string): Promise<boolean> {
