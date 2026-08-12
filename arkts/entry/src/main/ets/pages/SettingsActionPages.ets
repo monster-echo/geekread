@@ -90,18 +90,37 @@ export struct ChoicePreferencePage {
     Column() {
       PageHeader({ store: this.store, title: this.title() })
       Column({ space: AppSpacing.x3 }) {
-        Column() {
-          ForEach(this.options(), (option: string) => {
-            Row({ space: AppSpacing.x3 }) {
-              Radio({ group: this.groupName(), value: option }).checked(option === this.selected)
-                .onChange(() => this.selected = option)
-              Text(this.label(option)).fontSize(16).fontColor(AppColors.text)
+        if (this.route === AppRoute.TextSize) {
+          // 字号用滑块（连续调节），显示当前值
+          Column({ space: AppSpacing.x4 }) {
+            Row() {
+              Text(this.label(this.selected)).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
             }
-            .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
-            .backgroundColor(AppColors.surface)
-            .onClick(() => this.selected = option)
-          })
-        }.borderRadius(AppRadii.card)
+            Slider({ value: Number(this.selected), min: 0.85, max: 1.3, step: 0.05 })
+              .blockColor(AppColors.brand)
+              .selectedColor(AppColors.brand)
+              .onChange((value: number) => { this.selected = String(value) })
+            Row({ space: AppSpacing.x2 }) {
+              Text(appString(AppString.TextSmall, this.store.language))
+                .fontSize(12).fontColor(AppColors.textSecondary).layoutWeight(1)
+              Text(appString(AppString.TextExtraLarge, this.store.language))
+                .fontSize(12).fontColor(AppColors.textSecondary)
+            }.width('100%')
+          }.padding(AppSpacing.x4).backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
+        } else {
+          Column() {
+            ForEach(this.options(), (option: string) => {
+              Row({ space: AppSpacing.x3 }) {
+                Radio({ group: this.groupName(), value: option }).checked(option === this.selected)
+                  .onChange(() => this.selected = option)
+                Text(this.label(option)).fontSize(16).fontColor(AppColors.text)
+              }
+              .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
+              .backgroundColor(AppColors.surface)
+              .onClick(() => this.selected = option)
+            })
+          }.borderRadius(AppRadii.card)
+        }
         AppButton({ label: this.store.busy
           ? appString(AppString.Saving, this.store.language)
           : appString(AppString.SaveSettings, this.store.language),
