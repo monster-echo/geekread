@@ -1,71 +1,276 @@
 {
   "string": [
-    { "name": "app_name", "value": "极客译读" },
-    { "name": "back", "value": "返回" },
-    { "name": "profile_title", "value": "我的" },
-    { "name": "sign_in_prompt", "value": "登录后同步你的数据" },
-    { "name": "sign_in_description", "value": "会员、订单、优惠券与设置会安全同步。" },
-    { "name": "sign_in_action", "value": "登录或注册" },
-    { "name": "profile_edit", "value": "个人资料" },
-    { "name": "membership", "value": "会员中心" },
-    { "name": "statistics", "value": "使用统计" },
-    { "name": "orders", "value": "订单管理" },
-    { "name": "settings", "value": "设置" },
-    { "name": "sign_out", "value": "退出登录" },
-    { "name": "account_services", "value": "账户与服务" },
-    { "name": "preferences", "value": "应用偏好" },
-    { "name": "privacy_storage_support", "value": "隐私、存储与支持" },
-    { "name": "account_security", "value": "账户与安全" },
-    { "name": "devices", "value": "登录设备管理" },
-    { "name": "notification_settings", "value": "通知设置" },
-    { "name": "general", "value": "通用设置" },
-    { "name": "appearance", "value": "外观主题" },
-    { "name": "language", "value": "语言" },
-    { "name": "text_size", "value": "字体大小" },
-    { "name": "privacy", "value": "隐私设置" },
-    { "name": "permissions", "value": "权限管理" },
-    { "name": "storage", "value": "存储与缓存" },
-    { "name": "help_feedback", "value": "帮助与反馈" },
-    { "name": "legal", "value": "协议与政策" },
-    { "name": "about", "value": "关于与版本" },
-    { "name": "delete_account", "value": "注销账号" },
-    { "name": "theme_system", "value": "跟随系统" },
-    { "name": "theme_light", "value": "浅色" },
-    { "name": "theme_dark", "value": "深色" },
-    { "name": "language_chinese", "value": "简体中文" },
-    { "name": "language_english", "value": "English" },
-    { "name": "text_small", "value": "较小" },
-    { "name": "text_standard", "value": "标准" },
-    { "name": "text_large", "value": "较大" },
-    { "name": "text_extra_large", "value": "特大" },
-    { "name": "save_settings", "value": "保存设置" },
-    { "name": "saving", "value": "保存中…" },
-    { "name": "username_readonly", "value": "用户名（不可修改）" },
-    { "name": "display_name", "value": "显示名称" },
-    { "name": "bio", "value": "个人简介" },
-    { "name": "choose_avatar", "value": "选择头像" },
-    { "name": "avatar_url", "value": "或粘贴头像 URL" },
-    { "name": "save_profile", "value": "保存资料" },
-    { "name": "geek_reader_title", "value": "极客译读" },
-    { "name": "top_stories", "value": "精选" },
-    { "name": "latest_stories", "value": "最新" },
-    { "name": "refresh_success", "value": "已刷新" },
-    { "name": "refresh_fail", "value": "刷新失败" },
-    { "name": "load_failed", "value": "加载失败" },
-    { "name": "no_content", "value": "暂无内容" },
-    { "name": "no_more", "value": "没有更多了" },
-    { "name": "loading_more", "value": "加载中…" },
-    { "name": "original_text", "value": "原文" },
-    { "name": "translated", "value": "译" },
-    { "name": "translation_failed", "value": "翻译失败" },
-    { "name": "backend_hint", "value": "后端未配置" },
-    { "name": "retry", "value": "重试" },
-    { "name": "not_logged_in", "value": "未登录" },
-    { "name": "login", "value": "登录" },
-    { "name": "article", "value": "文章" },
-    { "name": "points_comments", "value": "分 · " },
-    { "name": "comments", "value": "评论" },
-    { "name": "read_original", "value": "阅读原文 ↗" },
-    { "name": "deleted", "value": "[已删除]" }
+    {
+      "name": "app_name",
+      "value": "极客译读"
+    },
+    {
+      "name": "back",
+      "value": "返回"
+    },
+    {
+      "name": "profile_title",
+      "value": "我的"
+    },
+    {
+      "name": "sign_in_prompt",
+      "value": "登录后同步你的数据"
+    },
+    {
+      "name": "sign_in_description",
+      "value": "会员、订单、优惠券与设置会安全同步。"
+    },
+    {
+      "name": "sign_in_action",
+      "value": "登录或注册"
+    },
+    {
+      "name": "profile_edit",
+      "value": "个人资料"
+    },
+    {
+      "name": "membership",
+      "value": "会员中心"
+    },
+    {
+      "name": "statistics",
+      "value": "使用统计"
+    },
+    {
+      "name": "orders",
+      "value": "订单管理"
+    },
+    {
+      "name": "settings",
+      "value": "设置"
+    },
+    {
+      "name": "sign_out",
+      "value": "退出登录"
+    },
+    {
+      "name": "account_services",
+      "value": "账户与服务"
+    },
+    {
+      "name": "preferences",
+      "value": "应用偏好"
+    },
+    {
+      "name": "privacy_storage_support",
+      "value": "隐私、存储与支持"
+    },
+    {
+      "name": "account_security",
+      "value": "账户与安全"
+    },
+    {
+      "name": "devices",
+      "value": "登录设备管理"
+    },
+    {
+      "name": "notification_settings",
+      "value": "通知设置"
+    },
+    {
+      "name": "general",
+      "value": "通用设置"
+    },
+    {
+      "name": "appearance",
+      "value": "外观主题"
+    },
+    {
+      "name": "language",
+      "value": "语言"
+    },
+    {
+      "name": "text_size",
+      "value": "字体大小"
+    },
+    {
+      "name": "privacy",
+      "value": "隐私设置"
+    },
+    {
+      "name": "permissions",
+      "value": "权限管理"
+    },
+    {
+      "name": "storage",
+      "value": "存储与缓存"
+    },
+    {
+      "name": "help_feedback",
+      "value": "帮助与反馈"
+    },
+    {
+      "name": "legal",
+      "value": "协议与政策"
+    },
+    {
+      "name": "about",
+      "value": "关于与版本"
+    },
+    {
+      "name": "delete_account",
+      "value": "注销账号"
+    },
+    {
+      "name": "theme_system",
+      "value": "跟随系统"
+    },
+    {
+      "name": "theme_light",
+      "value": "浅色"
+    },
+    {
+      "name": "theme_dark",
+      "value": "深色"
+    },
+    {
+      "name": "language_chinese",
+      "value": "简体中文"
+    },
+    {
+      "name": "language_english",
+      "value": "English"
+    },
+    {
+      "name": "text_small",
+      "value": "较小"
+    },
+    {
+      "name": "text_standard",
+      "value": "标准"
+    },
+    {
+      "name": "text_large",
+      "value": "较大"
+    },
+    {
+      "name": "text_extra_large",
+      "value": "特大"
+    },
+    {
+      "name": "save_settings",
+      "value": "保存设置"
+    },
+    {
+      "name": "saving",
+      "value": "保存中…"
+    },
+    {
+      "name": "username_readonly",
+      "value": "用户名（不可修改）"
+    },
+    {
+      "name": "display_name",
+      "value": "显示名称"
+    },
+    {
+      "name": "bio",
+      "value": "个人简介"
+    },
+    {
+      "name": "choose_avatar",
+      "value": "选择头像"
+    },
+    {
+      "name": "avatar_url",
+      "value": "或粘贴头像 URL"
+    },
+    {
+      "name": "save_profile",
+      "value": "保存资料"
+    },
+    {
+      "name": "geek_reader_title",
+      "value": "极客译读"
+    },
+    {
+      "name": "top_stories",
+      "value": "精选"
+    },
+    {
+      "name": "latest_stories",
+      "value": "最新"
+    },
+    {
+      "name": "refresh_success",
+      "value": "已刷新"
+    },
+    {
+      "name": "refresh_fail",
+      "value": "刷新失败"
+    },
+    {
+      "name": "load_failed",
+      "value": "加载失败"
+    },
+    {
+      "name": "no_content",
+      "value": "暂无内容"
+    },
+    {
+      "name": "no_more",
+      "value": "没有更多了"
+    },
+    {
+      "name": "loading_more",
+      "value": "加载中…"
+    },
+    {
+      "name": "original_text",
+      "value": "原文"
+    },
+    {
+      "name": "translated",
+      "value": "译"
+    },
+    {
+      "name": "translation_failed",
+      "value": "翻译失败"
+    },
+    {
+      "name": "backend_hint",
+      "value": "后端未配置"
+    },
+    {
+      "name": "retry",
+      "value": "重试"
+    },
+    {
+      "name": "not_logged_in",
+      "value": "未登录"
+    },
+    {
+      "name": "login",
+      "value": "登录"
+    },
+    {
+      "name": "article",
+      "value": "文章"
+    },
+    {
+      "name": "points_comments",
+      "value": "分 · "
+    },
+    {
+      "name": "comments",
+      "value": "评论"
+    },
+    {
+      "name": "read_original",
+      "value": "阅读原文 ↗"
+    },
+    {
+      "name": "deleted",
+      "value": "[已删除]"
+    },
+    {
+      "name": "translation_display",
+      "value": "翻译显示"
+    }
   ]
 }

@@ -267,6 +267,10 @@
     {
       "name": "deleted",
       "value": "[dihapus]"
+    },
+    {
+      "name": "translation_display",
+      "value": "Tampilan terjemahan"
     }
   ]
 }

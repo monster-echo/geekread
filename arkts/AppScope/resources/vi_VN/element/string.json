@@ -267,6 +267,10 @@
     {
       "name": "deleted",
       "value": "[đã xóa]"
+    },
+    {
+      "name": "translation_display",
+      "value": "Hiển thị bản dịch"
     }
   ]
 }

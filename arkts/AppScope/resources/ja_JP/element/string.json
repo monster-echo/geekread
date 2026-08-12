@@ -267,6 +267,10 @@
     {
       "name": "deleted",
       "value": "[削除済み]"
+    },
+    {
+      "name": "translation_display",
+      "value": "翻訳表示"
     }
   ]
 }

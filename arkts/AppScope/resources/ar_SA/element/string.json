@@ -267,6 +267,10 @@
     {
       "name": "deleted",
       "value": "[محذوف]"
+    },
+    {
+      "name": "translation_display",
+      "value": "عرض الترجمة"
     }
   ]
 }

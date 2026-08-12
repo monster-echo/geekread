@@ -24,6 +24,7 @@ export enum AppString {
   Appearance,
   Language,
   TextSize,
+  TranslationDisplay,
   Privacy,
   Permissions,
   Storage,
@@ -102,6 +103,7 @@ function resName(key: AppString): string {
     case AppString.Appearance: return 'appearance'
     case AppString.Language: return 'language'
     case AppString.TextSize: return 'text_size'
+    case AppString.TranslationDisplay: return 'translation_display'
     case AppString.Privacy: return 'privacy'
     case AppString.Permissions: return 'permissions'
     case AppString.Storage: return 'storage'

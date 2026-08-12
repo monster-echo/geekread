@@ -267,6 +267,10 @@
     {
       "name": "deleted",
       "value": "[삭제됨]"
+    },
+    {
+      "name": "translation_display",
+      "value": "번역 표시"
     }
   ]
 }
