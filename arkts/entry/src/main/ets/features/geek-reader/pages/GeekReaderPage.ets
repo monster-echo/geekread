@@ -1,5 +1,6 @@
 import vibrator from '@ohos.vibrator'
 import { AppStore } from '../../../state/AppStore'
+import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { localized } from '../../../localization/AppStrings'
@@ -7,6 +8,8 @@ import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 import { StoryDetailPage } from './StoryDetailPage'
+import { SettingsPage, SettingDetailPage } from '../../../pages/SettingsPages'
+import { AboutPage, ChoicePreferencePage, LegalDocumentPage, LegalPage } from '../../../pages/SettingsActionPages'
 
 const PAGE: number = 20
 
@@ -28,9 +31,15 @@ export struct GeekReaderPage {
   private pathStack: NavPathStack = new NavPathStack()
 
   aboutToAppear(): void {
+    // 挂载 pathStack 到 AppStore：让抽屉里的 navigateByName 走原生 Navigation 压栈，回来不重建。
+    this.store.navStack = this.pathStack
     // 页面由 Navigation 压栈保留，aboutToAppear 只在首次触发——回来不会重刷。
     this.load('top')
     this.load('latest')
+  }
+
+  aboutToDisappear(): void {
+    if (this.store.navStack === this.pathStack) this.store.navStack = null
   }
 
   private async load(type: string): Promise<void> {
@@ -181,6 +190,28 @@ export struct GeekReaderPage {
   DetailDest(name: string, param: object) {
     if (name === 'detail') {
       StoryDetailPage({ store: this.store })
+    } else if (name.startsWith('settings_')) {
+      // param 是 AppRoute 数字枚举；按它分发（与壳 SettingsHost 一致），返回由 Navigation 管。
+      this.SettingsDest(Number(param))
+    }
+  }
+
+  @Builder
+  SettingsDest(routeNum: number) {
+    if (routeNum === AppRoute.Settings) {
+      SettingsPage({ store: this.store })
+    } else if (routeNum === AppRoute.About) {
+      AboutPage({ store: this.store })
+    } else if (routeNum === AppRoute.Legal) {
+      LegalPage({ store: this.store })
+    } else if (routeNum === AppRoute.PrivacyPolicy) {
+      LegalDocumentPage({ store: this.store, type: 'privacy' })
+    } else if (routeNum === AppRoute.TermsOfService) {
+      LegalDocumentPage({ store: this.store, type: 'terms' })
+    } else if (routeNum === AppRoute.Appearance || routeNum === AppRoute.Language || routeNum === AppRoute.TextSize) {
+      ChoicePreferencePage({ store: this.store, route: routeNum as AppRoute })
+    } else {
+      SettingDetailPage({ store: this.store, route: routeNum as AppRoute })
     }
   }
 
