@@ -156,7 +156,9 @@ export function appString(key: AppString, language: string): string {
     try {
       const name = resName(key)
       if (name.length > 0) {
-        return context.resourceManager.getStringSync($r('app.string.' + name).id)
+        // 按资源名读当前语言（AppScope 的 app.string.*）
+        const value = context.resourceManager.getStringByNameSync(name)
+        if (value.length > 0) return value
       }
     } catch (e) {
       // 资源缺失时回退
