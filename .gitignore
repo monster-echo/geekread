@@ -7,3 +7,10 @@ node_modules/
 .vscode/
 **/local.properties
 **/signing-config.json
+# 签名材料（不提交）
+arkts/**/.ohos/
+arkts/entry/**/signing-config.json
+**/*.p12
+**/*.p7b
+**/*.cer
+**/*.csr
