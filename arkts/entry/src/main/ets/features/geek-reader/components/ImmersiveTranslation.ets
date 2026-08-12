@@ -26,6 +26,7 @@ export struct ImmersiveTranslation {
   @State loading: boolean = false
   @State failed: boolean = false
   @State failedMsg: string = ''
+  @State isQuota: boolean = false
 
   private get lang(): TargetLanguage | null {
     return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
@@ -54,7 +55,11 @@ export struct ImmersiveTranslation {
         this.loading = false
       })
       .catch((e: object) => {
-        this.failedMsg = e instanceof Error ? e.message : String(e)
+        const msg = e instanceof Error ? e.message : String(e)
+        if (msg === 'quota_exceeded') {
+          this.isQuota = true
+        }
+        this.failedMsg = msg
         this.failed = true
         this.loading = false
       })
@@ -91,7 +96,12 @@ export struct ImmersiveTranslation {
               if (this.loading) {
                 LoadingProgress().width(18).height(18)
               } else if (this.failed) {
-                Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
+                if (this.isQuota) {
+                  Text('今日免费翻译已用完 · 升级 Pro 可继续')
+                    .fontSize(11).fontColor(AppColors.brand).fontWeight(FontWeight.Bold)
+                } else {
+                  Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)
+                }
               }
             }.alignItems(HorizontalAlign.Start).width('100%')
           }

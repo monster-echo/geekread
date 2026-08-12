@@ -135,6 +135,13 @@ export struct GeekReaderPage {
         Text(this.store.signedIn ? '' : appString(AppString.Login, this.store.language)).fontSize(12).fontColor(AppColors.brand)
       }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
       .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
+      // Pro 会员入口（显示当前档位）
+      Row({ space: AppSpacing.x3 }) {
+        Text(this.store.user?.tierId === 'pro' ? 'Pro ✓' : '解锁 Pro')
+          .fontSize(16).fontColor(AppColors.brand).fontWeight(FontWeight.Bold).layoutWeight(1)
+        Text(this.store.user?.tierId === 'pro' ? '每日 500 次翻译' : '每日 500 次翻译').fontSize(11).fontColor(AppColors.textSecondary)
+      }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 })
+      .onClick(() => this.goto('membership.home'))
       this.MenuRow(appString(AppString.Settings, this.store.language), 'settings.home')
       this.MenuRow(appString(AppString.About, this.store.language), 'settings.about')
       this.MenuRow(appString(AppString.Legal, this.store.language), 'settings.legal')
