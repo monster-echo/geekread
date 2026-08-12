@@ -12,12 +12,16 @@ import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 const PAGE: number = 20
 
 // 模块级缓存：从文章详情返回时不重新请求，直接还原列表数据。
-interface TabCache { stories: Story[]; status: AsyncStatus; loaded: boolean }
-function emptyTab(): TabCache {
-  const t: TabCache = { stories: [], status: AsyncStatus.Idle, loaded: false }
-  return t
+class TabCache {
+  stories: Story[] = []
+  status: AsyncStatus = AsyncStatus.Idle
+  loaded: boolean = false
 }
-const cache: Record<string, TabCache> = { top: emptyTab(), latest: emptyTab() }
+class GeekCache {
+  top: TabCache = new TabCache()
+  latest: TabCache = new TabCache()
+}
+const cache: GeekCache = new GeekCache()
 
 @Component
 export struct GeekReaderPage {
@@ -54,15 +58,19 @@ export struct GeekReaderPage {
   }
 
   private setStatus(type: string, s: AsyncStatus): void {
-    cache[type].status = s
+    this.tabOf(type).status = s
     if (type === 'top') this.topStatus = s; else this.latestStatus = s
   }
 
   private putStories(type: string, arr: Story[]): void {
-    const prev: TabCache = cache[type]
-    const next: TabCache = { stories: arr, status: prev.status, loaded: true }
-    cache[type] = next
+    const c: TabCache = this.tabOf(type)
+    c.stories = arr
+    c.loaded = true
     if (type === 'top') this.topStories = arr; else this.latestStories = arr
+  }
+
+  private tabOf(type: string): TabCache {
+    return type === 'top' ? cache.top : cache.latest
   }
 
   private refresh(): void {
