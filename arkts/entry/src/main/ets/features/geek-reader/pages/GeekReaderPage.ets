@@ -1,57 +1,33 @@
 import vibrator from '@ohos.vibrator'
 import { AppStore } from '../../../state/AppStore'
-import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
-import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
-import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
+import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { localized } from '../../../localization/AppStrings'
 import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
+import { StoryDetailPage } from './StoryDetailPage'
 
 const PAGE: number = 20
-
-// 模块级缓存：跨页面导航（进/出文章详情）保留 tab、滚动位置、已加载数据。
-class TabCache {
-  stories: Story[] = []
-  status: AsyncStatus = AsyncStatus.Idle
-  loaded: boolean = false
-}
-class GeekCache {
-  top: TabCache = new TabCache()
-  latest: TabCache = new TabCache()
-  activeTab: number = 0
-  scrollTop: number = 0
-  scrollLatest: number = 0
-}
-const cache: GeekCache = new GeekCache()
 
 @Component
 export struct GeekReaderPage {
   @ObjectLink store: AppStore
-  @State topStories: Story[] = cache.top.stories
-  @State topStatus: AsyncStatus = cache.top.status
-  @State latestStories: Story[] = cache.latest.stories
-  @State latestStatus: AsyncStatus = cache.latest.status
-  @State activeTab: number = cache.activeTab
+  @State topStories: Story[] = []
+  @State topStatus: AsyncStatus = AsyncStatus.Idle
+  @State latestStories: Story[] = []
+  @State latestStatus: AsyncStatus = AsyncStatus.Idle
+  @State activeTab: number = 0
   @State errorMessage: string = ''
   @State headerVisible: boolean = true
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
-  private topScroller: Scroller = new Scroller()
-  private latestScroller: Scroller = new Scroller()
-  private restored: boolean = false
+  private pathStack: NavPathStack = new NavPathStack()
 
   aboutToAppear(): void {
-    if (!cache.top.loaded) this.load('top')
-    if (!cache.latest.loaded) this.load('latest')
-    // 还原滚动位置（等列表布局完成）
-    setTimeout(() => {
-      const y = cache.activeTab === 0 ? cache.scrollTop : cache.scrollLatest
-      const sc = cache.activeTab === 0 ? this.topScroller : this.latestScroller
-      if (y > 0) sc.scrollTo({ xOffset: 0, yOffset: y })
-      this.restored = true
-    }, 300)
+    // 页面由 Navigation 压栈保留，aboutToAppear 只在首次触发——回来不会重刷。
+    this.load('top')
+    this.load('latest')
   }
 
   private async load(type: string): Promise<void> {
@@ -70,19 +46,11 @@ export struct GeekReaderPage {
   }
 
   private setStatus(type: string, s: AsyncStatus): void {
-    this.tabOf(type).status = s
     if (type === 'top') this.topStatus = s; else this.latestStatus = s
   }
 
   private putStories(type: string, arr: Story[]): void {
-    const c: TabCache = this.tabOf(type)
-    c.stories = arr
-    c.loaded = true
     if (type === 'top') this.topStories = arr; else this.latestStories = arr
-  }
-
-  private tabOf(type: string): TabCache {
-    return type === 'top' ? cache.top : cache.latest
   }
 
   private refresh(): void {
@@ -100,17 +68,14 @@ export struct GeekReaderPage {
   }
 
   private openStory(id: number): void {
-    // 离开前保存当前 tab 的滚动位置
-    const off = this.activeTab === 0 ? this.topScroller.currentOffset() : this.latestScroller.currentOffset()
-    if (this.activeTab === 0) cache.scrollTop = off.yOffset; else cache.scrollLatest = off.yOffset
-    cache.activeTab = this.activeTab
+    // 压栈进详情；源页面（本阅读器）由 Navigation 保留不动，返回时不刷新、滚动位置不变。
     this.store.geekReaderStoryId = id
-    this.store.navigate(AppRoute.GeekReaderDetail)
+    this.pathStack.pushPathByName('detail', '')
   }
 
-  private goto(route: AppRoute): void {
+  private goto(route: string): void {
     this.drawerOpen = false
-    this.store.navigate(route)
+    this.store.navigateByName(route)
   }
 
   private onScrollDir(offset: number): void {
@@ -126,20 +91,19 @@ export struct GeekReaderPage {
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
         Text(this.store.signedIn ? '' : '点击登录').fontSize(12).fontColor(AppColors.brand)
       }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
-      .onClick(() => this.goto(this.store.signedIn ? AppRoute.Profile : AppRoute.SignIn))
-      this.MenuRow(localized('设置', 'Settings', this.store.language), AppRoute.Settings)
-      this.MenuRow(localized('关于与版本', 'About', this.store.language), AppRoute.About)
-      this.MenuRow(localized('协议与政策', 'Legal', this.store.language), AppRoute.Legal)
+      .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
+      this.MenuRow(localized('设置', 'Settings', this.store.language), 'settings.home')
+      this.MenuRow(localized('关于与版本', 'About', this.store.language), 'settings.about')
+      this.MenuRow(localized('协议与政策', 'Legal', this.store.language), 'settings.legal')
       Blank()
       Text('GeekRead · 极客译读').fontSize(11).fontColor(AppColors.textSecondary).padding(AppSpacing.x5)
     }.width('100%').height('100%').backgroundColor(AppColors.surface).alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  MenuRow(title: string, route: AppRoute) {
+  MenuRow(title: string, route: string) {
     Row({ space: AppSpacing.x3 }) {
       Text(title).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
-      AppIcon({ name: AppIconName.ChevronRight, iconSize: 18, color: AppColors.textSecondary })
     }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 }).onClick(() => this.goto(route))
   }
 
@@ -160,12 +124,10 @@ export struct GeekReaderPage {
         .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
     } else if (status === AsyncStatus.Empty) {
       Column({ space: AppSpacing.x3 }) {
-        AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
         Text('暂无内容，下拉刷新重试').fontColor(AppColors.textSecondary).fontSize(14)
       }.justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).layoutWeight(1)
     } else if (status === AsyncStatus.Error) {
       Column({ space: AppSpacing.x3 }) {
-        AppIcon({ name: AppIconName.Globe, iconSize: 48, color: AppColors.border })
         Text(`加载失败：${msg}`).fontColor(AppColors.textSecondary).fontSize(14)
           .padding({ left: AppSpacing.x6, right: AppSpacing.x6 }).textAlign(TextAlign.Center)
         Button('重试').onClick(() => this.refresh())
@@ -173,59 +135,72 @@ export struct GeekReaderPage {
     }
   }
 
+  @Builder
+  DetailDest(name: string, param: object) {
+    if (name === 'detail') {
+      StoryDetailPage({ store: this.store })
+    }
+  }
+
   build() {
     SideBarContainer() {
       this.DrawerMenu()
-      Column() {
-        // 顶栏：汉堡 + 标题（向上滚收起，向下滚展开）
-        Row() {
-          Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
-            .width(48).height(48).justifyContent(FlexAlign.Center)
-            .onClick(() => { this.vibrate(); this.drawerOpen = true })
-          Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
-            .layoutWeight(1).textAlign(TextAlign.Center)
-          Blank().width(48)
-        }.width('100%').height(this.headerVisible ? 56 : 0)
-        .padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
-        .border({ width: { bottom: this.headerVisible ? 1 : 0 }, color: AppColors.border })
-        .clip(true).animation({ duration: 220, curve: Curve.EaseOut })
+      Navigation(this.pathStack) {
+        Column() {
+          // 顶栏：汉堡 + 标题（向上滚收起，向下滚展开）
+          Row() {
+            Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
+              .width(48).height(48).justifyContent(FlexAlign.Center)
+              .onClick(() => { this.vibrate(); this.drawerOpen = true })
+            Text('极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+              .layoutWeight(1).textAlign(TextAlign.Center)
+            Blank().width(48)
+          }.width('100%').height(this.headerVisible ? 56 : 0)
+          .padding({ left: AppSpacing.x2, right: AppSpacing.x2 })
+          .border({ width: { bottom: this.headerVisible ? 1 : 0 }, color: AppColors.border })
+          .clip(true).animation({ duration: 220, curve: Curve.EaseOut })
 
-        Tabs({ barPosition: BarPosition.Start, index: this.activeTab }) {
-          TabContent() {
-            if (this.topStatus === AsyncStatus.Success) {
-              Refresh({ refreshing: $$this.refreshing }) {
-                List({ scroller: this.topScroller, space: AppSpacing.x3 }) {
-                  ForEach(this.topStories, (s: Story) => {
-                    ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
-                  }, (s: Story) => `${s.id}`)
-                }
-                .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
-              }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
-            } else {
-              this.StatusView(this.topStatus, this.errorMessage)
-            }
-          }.tabBar('精选')
+          Tabs({ barPosition: BarPosition.Start, index: this.activeTab }) {
+            TabContent() {
+              if (this.topStatus === AsyncStatus.Success) {
+                Refresh({ refreshing: $$this.refreshing }) {
+                  List({ space: AppSpacing.x3 }) {
+                    ForEach(this.topStories, (s: Story) => {
+                      ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+                    }, (s: Story) => `${s.id}`)
+                  }
+                  .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+                }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
+              } else {
+                this.StatusView(this.topStatus, this.errorMessage)
+              }
+            }.tabBar('精选')
 
-          TabContent() {
-            if (this.latestStatus === AsyncStatus.Success) {
-              Refresh({ refreshing: $$this.refreshing }) {
-                List({ scroller: this.latestScroller, space: AppSpacing.x3 }) {
-                  ForEach(this.latestStories, (s: Story) => {
-                    ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
-                  }, (s: Story) => `${s.id}`)
-                }
-                .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
-              }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
-            } else {
-              this.StatusView(this.latestStatus, this.errorMessage)
-            }
-          }.tabBar('最新')
-        }
-        .onChange((i: number) => { this.activeTab = i; cache.activeTab = i })
-        .barMode(BarMode.Fixed)
-        .scrollable(true)
-        .layoutWeight(1).width('100%')
-      }.width('100%').height('100%')
+            TabContent() {
+              if (this.latestStatus === AsyncStatus.Success) {
+                Refresh({ refreshing: $$this.refreshing }) {
+                  List({ space: AppSpacing.x3 }) {
+                    ForEach(this.latestStories, (s: Story) => {
+                      ListItem() { this.StoryItem(s) }.onClick(() => this.openStory(s.id))
+                    }, (s: Story) => `${s.id}`)
+                  }
+                  .onScroll((offset: number, state: ScrollState) => this.onScrollDir(offset))
+                }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
+              } else {
+                this.StatusView(this.latestStatus, this.errorMessage)
+              }
+            }.tabBar('最新')
+          }
+          .onChange((i: number) => { this.activeTab = i })
+          .barMode(BarMode.Fixed)
+          .scrollable(true)
+          .layoutWeight(1).width('100%')
+        }.width('100%').height('100%')
+      }
+      .navDestination(this.DetailDest)
+      .hideTitleBar(true)
+      .mode(NavigationMode.Stack)
+      .width('100%').height('100%')
     }
     .showSideBar(this.drawerOpen)
     .sideBarPosition(SideBarPosition.Start)
