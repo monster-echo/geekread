@@ -92,10 +92,17 @@ struct Index {
       NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.SignIn}` || name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
       NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.title(this.authTitle()).hideTitleBar(false)
+    } else if (name === `route_${AppRoute.AccountSecurity}`) {
+      NavDestination() { AccountSecurityPage({ store: this.store }) }.title('账户与安全').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Devices}`) {
+      NavDestination() { SessionsPage({ store: this.store, remote: this.store.remote }) }.title('登录设备管理').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.Membership}`) {
+      NavDestination() { MembershipPage({ store: this.store }) }.title('会员中心').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Profile}`) {
       NavDestination() { ProfilePage({ store: this.store }) }.title('我的').hideTitleBar(false)
     } else {
-      NavDestination() { SettingDetailPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
+      // 未注册的路由 → 404（不静默掉进错误的通用页）
+      NavDestination() { NotFoundPage() }.title('页面不存在').hideTitleBar(false)
     }
   }
 
@@ -263,3 +270,17 @@ struct ToastHost {
   }
 }
 
+
+@Component
+struct NotFoundPage {
+  build() {
+    Column({ space: AppSpacing.x3 }) {
+      Text('404')
+        .fontSize(48).fontWeight(FontWeight.Bold).fontColor(AppColors.textSecondary)
+      Text('页面不存在')
+        .fontSize(16).fontColor(AppColors.textSecondary)
+    }
+    .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+    .width('100%').height('100%')
+  }
+}
