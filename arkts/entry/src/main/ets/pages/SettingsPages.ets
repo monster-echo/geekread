@@ -75,6 +75,10 @@ export struct SettingsPage {
     if (route === AppRoute.Language) return 'language'
     if (route === AppRoute.Privacy) return 'analytics'
     if (route === AppRoute.DeleteAccount) return 'accountDeletion'
+    if (route === AppRoute.Membership) return 'membership'
+    if (route === AppRoute.AccountSecurity) return 'accountSecurity'
+    if (route === AppRoute.Devices) return 'devices'
+    if (route === AppRoute.HelpFeedback) return 'helpFeedback'
     return ''
   }
 }
