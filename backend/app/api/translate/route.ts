@@ -30,6 +30,8 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const targetLanguage = requireString((payload as { targetLanguage?: unknown }).targetLanguage, 20);
     if (!SUPPORTED.has(targetLanguage)) throw new Error('unsupported_target_language');
+    // free=true 走免费通道（不扣配额）：列表标题/详情正文，用于留存。
+    const isFree = (payload as { free?: unknown }).free === true;
     const rawEntries = (payload as { entries?: unknown }).entries;
     if (!Array.isArray(rawEntries) || rawEntries.length === 0 || rawEntries.length > MAX_ENTRIES) {
       throw new Error('invalid_request');
@@ -54,6 +56,17 @@ export async function POST(request: Request): Promise<Response> {
         try {
           const cached = await getCachedTranslation(entry.text, targetLanguage);
           if (cached) { results[index] = { key: entry.key, translation: cached, cached: true }; continue; }
+          if (isFree) {
+            // 免费通道：不扣配额
+            try {
+              const translation = await translateWithModel(entry.text, targetLanguage);
+              await cacheTranslation(entry.text, targetLanguage, translation);
+              results[index] = { key: entry.key, translation };
+            } catch (error) {
+              results[index] = { key: entry.key, error: error instanceof Error ? error.message : 'translation_failed' };
+            }
+            continue;
+          }
           const reservation = await reserveDaily(day, clientId, isPro);
           if (!reservation.allowed) { results[index] = { key: entry.key, error: 'quota_exceeded' }; remaining = 0; continue; }
           remaining = remaining === undefined ? reservation.remaining : Math.min(remaining, reservation.remaining);

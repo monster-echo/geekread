@@ -160,7 +160,7 @@ export struct GeekReaderPage {
   @Builder
   StoryItem(s: Story) {
     Column({ space: AppSpacing.x1 }) {
-      ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
+      ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true })
       Text(`${s.score}${appString(AppString.PointsComments, this.store.language)}${s.by} · ${s.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
         .fontSize(12).fontColor(AppColors.textSecondary)
     }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)

@@ -14,6 +14,7 @@ export interface TranslateEntry {
 export interface TranslateRequest {
   targetLanguage: TargetLanguage
   entries: TranslateEntry[]
+  free?: boolean
 }
 
 export interface TranslateResult {

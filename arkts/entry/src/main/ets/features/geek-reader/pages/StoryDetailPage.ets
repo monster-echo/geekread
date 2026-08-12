@@ -86,11 +86,11 @@ export struct StoryDetailPage {
         } else {
           Scroll() {
             Column({ space: AppSpacing.x3 }) {
-              ImmersiveTranslation({ text: this.story.title, locale: this.store.language, displayMode: this.store.translationDisplayMode })
+              ImmersiveTranslation({ text: this.story.title, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true })
               if (this.story.url !== undefined && this.story.url.length > 0) {
                 Text(appString(AppString.ReadOriginal, this.store.language)).fontColor(AppColors.brand).fontSize(14)
               } else if (this.story.text !== undefined && this.story.text.length > 0) {
-                ImmersiveTranslation({ text: this.story.text, locale: this.store.language, displayMode: this.store.translationDisplayMode })
+                ImmersiveTranslation({ text: this.story.text, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true })
               }
               Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)

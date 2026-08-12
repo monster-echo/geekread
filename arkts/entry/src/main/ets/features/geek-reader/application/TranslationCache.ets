@@ -4,6 +4,7 @@ import { translateBatch, TranslateRequest, TranslateResponse, TranslateEntry } f
 interface Pending {
   text: string
   lang: TargetLanguage
+  free: boolean
   resolve: (t: string) => void
   reject: (e: Error) => void
 }
@@ -56,7 +57,7 @@ async function flush(): Promise<void> {
     for (let i = start; i < end; i++) {
       entries.push({ key: String(i - start), text: batch[i].text })
     }
-    const req: TranslateRequest = { targetLanguage: lang, entries }
+    const req: TranslateRequest = { targetLanguage: lang, entries, free: batch[0].free === true }
     try {
       const res: TranslateResponse = await translateBatch(req)
       for (let pi = 0; pi < entries.length; pi++) {
@@ -78,14 +79,14 @@ async function flush(): Promise<void> {
   }
 }
 
-export function translate(text: string, lang: TargetLanguage): Promise<string> {
+export function translate(text: string, lang: TargetLanguage, free: boolean = false): Promise<string> {
   const k = cacheKey(lang, text)
   const hit = cache.get(k)
   if (hit !== undefined) return Promise.resolve(hit)
   const flying = inFlight.get(k)
   if (flying !== undefined) return flying
   const p = new Promise<string>((resolve, reject) => {
-    pending.push({ text, lang, resolve, reject })
+    pending.push({ text, lang, free, resolve, reject })
     scheduleFlush()
   })
   inFlight.set(k, p)

@@ -22,6 +22,7 @@ export struct ImmersiveTranslation {
   @Prop text: string
   @Prop locale: string
   @Prop displayMode: string = 'both' // 'original' | 'translation' | 'both'
+  @Prop free: boolean = false // true=免费通道（不扣配额）：列表标题/详情正文
   @State result: string = ''
   @State loading: boolean = false
   @State failed: boolean = false
@@ -44,7 +45,7 @@ export struct ImmersiveTranslation {
     if (l === null) return
     this.loading = true
     this.failed = false
-    translate(this.text, l)
+    translate(this.text, l, this.free)
       .then((t: string) => {
         if (typeof t === 'string' && t.length > 0 && t !== 'undefined') {
           this.result = t
