@@ -1,17 +1,71 @@
 # 极客译读（GeekRead）
 
-沉浸式翻译的 Hacker News 阅读器。商业化 Freemium，覆盖 HarmonyOS（ArkTS 原生）+ iOS/Android（React Native）。
+> **沉浸式翻译的 Hacker News 阅读器。** 中文读遍 HN，看不懂的句子一键翻译。
+
+Hacker News 是全世界技术人都在看的地方，但满屏英文让不少中文读者望而却步。**极客译读**把「阅读 + AI 翻译」做成一件顺手的事：原文译文对照着看，卡住的句子一点就译，不用在浏览器和翻译 App 之间来回切。
+
+## 为什么值得一试
+
+- 🔍 **看 HN 不再有英文门槛** —— 标题、正文、评论都能译，中英对照
+- ⚡ **沉浸式翻译** —— 三种显示模式：只看原文 / 只看译文 / 双语对照
+- 🆓 **免费就能用** —— 每天 20 次翻译额度，够轻度阅读
+- 📱 **为中文用户打造** —— 10 种界面语言，深色模式，评论树可折叠
+
+## 截图
+
+> 📸 真机截图占位 —— 后续替换为 App 实际截图（列表页 / 详情页双语 / 侧边栏额度卡片）
+
+## 功能
+
+| 功能 | 说明 |
+|------|------|
+| HN Top / Latest 双列表 | 热榜 + 最新，下拉刷新、滚动加载更多 |
+| 沉浸式翻译 | 原文 / 译文 / 双语三态切换，正文与评论均可译 |
+| 评论树 | 层级缩进、点击折叠、评论逐条翻译 |
+| 分享卡片 | 一键生成文章分享图，直接分享 |
+| 翻译额度 | 免费 20 次/天 · Pro 500 次/天，侧边栏实时进度 |
+| 会员中心 | 升级 Pro、订单记录、多语言界面 |
+
+## 定价
+
+| 档位 | 每日翻译 | 价格 |
+|------|---------|------|
+| **免费** | 20 次/天 | ¥0 |
+| **Pro** | 500 次/天 + Pro 标识 | ¥6/月 · ¥48/年（以 App 内为准） |
+
+> 翻译额度按设备每日计算，次日重置。升级 Pro 走华为应用内支付（IAP），会员权益即时生效。
+
+## 下载
+
+| 平台 | 状态 |
+|------|------|
+| **HarmonyOS** | ✅ 已上架/可安装（AppGallery） |
+| iOS / Android | 🚧 React Native 开发中，敬请期待 |
+
+> 下载链接占位 —— 上架后替换为商店链接。
+
+---
+
+## 技术概要（开发者）
+
+- **客户端**：HarmonyOS NEXT（ArkTS 原生，一等公民）；iOS/Android（React Native / Expo）
+- **后端**：Next.js —— HN 代理、AI 翻译（DeepSeek）、配额、Pro 权益验签
+- **认证 / 支付**：MobileStarter 共享 server（`app_id=geekread`）
+- **数据流**：HN → 后端代理/翻译 → 客户端渲染（支持 URL 前缀代理加速 HN 拉取）
+
+**快速开始**：见 `backend/README.md`（后端）与 `docs/`（设计文档、实施计划、构建指南）。
 
 ## 仓库结构
 
 | 目录 | 说明 |
-|---|---|
-| `arkts/` | HarmonyOS NEXT ArkTS 原生客户端（一等公民） |
+|------|------|
+| `arkts/` | HarmonyOS NEXT ArkTS 原生客户端 |
 | `react-native/` | iOS/Android React Native（Expo）客户端 |
-| `backend/` | 极客译读专属 Next.js 后端（HN 代理 + 翻译 + 配额 + entitlement 验签） |
+| `backend/` | 专属 Next.js 后端（HN 代理 + 翻译 + 配额 + 验签） |
 | `shared/` | 跨端 API 契约（JSON Schema + codegen） |
 | `docs/` | 设计文档 + 实施计划 |
 
-> MobileStarter 共享 server（auth/IAP/多租户）独立部署，本仓库通过 `app_id=geekread` 消费，不 vendor。
+## 说明
 
-详见 `docs/superpowers/specs/` 与 `docs/superpowers/plans/`。
+- 翻译额度按**设备**（安装 ID）计算，重装 App 会重置当日额度。
+- 免费通道（列表标题、正文）不消耗额度；评论区翻译消耗额度。
