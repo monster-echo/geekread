@@ -4,7 +4,7 @@ import { HNItem, Story, TargetLanguage } from '../domain/Models'
 import { toStory } from '../domain/Models'
 import { getEntitlementToken } from './Entitlement'
 
-const GEEK_READER_BASE: string = 'http://192.168.20.120:8787'
+const GEEK_READER_BASE: string = 'https://geekread.app.zhongbei.tech'
 
 export interface TranslateEntry {
   key: string

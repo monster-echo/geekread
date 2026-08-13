@@ -14,3 +14,6 @@ arkts/entry/**/signing-config.json
 **/*.p7b
 **/*.cer
 **/*.csr
+.local/
+material/
+*-signed.app

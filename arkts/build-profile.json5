@@ -21,9 +21,8 @@
       {
         "name": "release"
       }
-    ]
-    // 签名配置不提交：本地用 DevEco 自动签名，CI/发布用华为 AGC 签名注入。
-    // 密钥材料（.cer/.p12/.p7b）在 ~/.ohos/config/，不入库。
+    ],
+    "signingConfigs": []
   },
   "modules": [
     {

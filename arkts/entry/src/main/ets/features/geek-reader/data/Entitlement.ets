@@ -4,7 +4,7 @@ import { localStore } from '../../../data/LocalStore'
 // MobileStarter server（共享通用后端）基址。ArkTS 无 env 系统，部署时改本常量。
 const MOBILE_STARTER_BASE: string = 'https://auth.zhongbei.tech'
 const APP_ID: string = 'geekread'
-const APP_ENV: string = 'development'
+const APP_ENV: string = 'production'
 
 interface EntitlementResponse {
   token: string | null

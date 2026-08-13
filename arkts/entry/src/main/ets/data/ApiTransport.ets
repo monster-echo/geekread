@@ -13,9 +13,9 @@ import {
   SignUpInput
 } from '../domain/Models'
 
-const API_BASE: string = 'http://192.168.20.120:3210'
+const API_BASE: string = 'https://auth.zhongbei.tech'
 const APP_ID: string = 'geekread'
-const APP_ENVIRONMENT: string = 'development'
+const APP_ENVIRONMENT: string = 'production'
 
 export interface SocialSignInInput {
   provider: string
