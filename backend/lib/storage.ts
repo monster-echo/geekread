@@ -189,6 +189,13 @@ export async function reserveTranslation(
   });
 }
 
+export async function peekTranslation(day: string, clientId: string): Promise<number> {
+  const key = `geekread:translation:${day}:${clientId}`;
+  const client = await redis();
+  if (!client) return localUsage.get(key) ?? 0;
+  return Number(await client.get(key) ?? 0);
+}
+
 export function storageConfiguration(): { redis: boolean } {
   return { redis: Boolean(process.env.REDIS_URL?.trim()) };
 }
