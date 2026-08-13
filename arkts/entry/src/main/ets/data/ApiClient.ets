@@ -191,11 +191,11 @@ export class ApiClient {
     ).then(result => result['changed'] === true)
   }
 
-  updateProfile(displayName: string, bio: string, avatarUrl: string): Promise<AppUser> {
+  updateProfile(username: string, displayName: string, bio: string, avatarUrl: string): Promise<AppUser> {
     return this.request<AppUser>(
       '/api/v1/me/profile',
       http.RequestMethod.PUT,
-      { displayName, bio, avatarUrl }
+      { username, displayName, bio, avatarUrl }
     )
   }
 

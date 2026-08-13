@@ -269,6 +269,10 @@
       "value": "[ลบแล้ว]"
     },
     {
+      "name": "share",
+      "value": "แชร์"
+    },
+    {
       "name": "translation_display",
       "value": "การแสดงคำแปล"
     },

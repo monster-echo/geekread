@@ -269,6 +269,10 @@
       "value": "[dihapus]"
     },
     {
+      "name": "share",
+      "value": "Bagikan"
+    },
+    {
       "name": "translation_display",
       "value": "Tampilan terjemahan"
     },

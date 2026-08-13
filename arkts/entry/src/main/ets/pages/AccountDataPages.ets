@@ -59,7 +59,7 @@ export struct OrdersPage {
       if (this.remote.orderState.status === AsyncStatus.Loading) {
         LoadingProgress().width(40).height(40).layoutWeight(1)
       } else if (this.remote.orderState.status === AsyncStatus.Empty) {
-        EmptyCopy({ message: '当前账户暂无订单。', retry: () => this.remote.loadOrders() })
+        EmptyCopy({ message: '当前账户暂无订单。', showRetry: false, retry: () => this.remote.loadOrders() })
       } else if (this.remote.orderState.status === AsyncStatus.Success) {
         List({ space: AppSpacing.x3 }) {
           ForEach(this.remote.orderState.data ?? [], (order: OrderView) => {
@@ -87,11 +87,15 @@ export struct OrdersPage {
 @Component
 struct EmptyCopy {
   @Prop message: string
+  // true=显示重试按钮（加载失败）；false=仅展示（无数据，可下拉刷新）
+  @Prop showRetry: boolean = true
   retry: () => void = () => {}
   build() {
     Column({ space: AppSpacing.x3 }) {
       Text(this.message).fontColor(AppColors.textSecondary)
-      AppButton({ label: '重试', onTap: this.retry })
+      if (this.showRetry) {
+        AppButton({ label: '重试', onTap: this.retry })
+      }
     }.padding(AppSpacing.x6).justifyContent(FlexAlign.Center).layoutWeight(1)
   }
 }

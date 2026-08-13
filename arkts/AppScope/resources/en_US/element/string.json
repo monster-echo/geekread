@@ -269,6 +269,10 @@
       "value": "[deleted]"
     },
     {
+      "name": "share",
+      "value": "Share"
+    },
+    {
       "name": "translation_display",
       "value": "Translation display"
     },

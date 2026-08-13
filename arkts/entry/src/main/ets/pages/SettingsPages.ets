@@ -205,7 +205,7 @@ export struct SettingDetailPage {
     }).then(async result => {
       if (result.index === 1) {
         if (await this.store.deleteAccount(this.password)) {
-          this.store.replaceAll(AppRoute.Home)
+          this.store.goHome()
         }
       }
     })

@@ -269,6 +269,10 @@
       "value": "[đã xóa]"
     },
     {
+      "name": "share",
+      "value": "Chia sẻ"
+    },
+    {
       "name": "translation_display",
       "value": "Hiển thị bản dịch"
     },

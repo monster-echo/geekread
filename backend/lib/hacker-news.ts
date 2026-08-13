@@ -6,8 +6,10 @@ const listFreshTtlSeconds = 60;
 const listStaleTtlSeconds = 600;
 const itemFreshTtlSeconds = 300;
 const itemStaleTtlSeconds = 3600;
-const fetchTimeoutMs = 15_000;
-const fetchConcurrency = 8;
+// HN 冷拉较慢：提高并发（20 一批拉完）并缩短超时（慢请求快速失败），
+// 避免无缓存首次加载卡十几秒。
+const fetchTimeoutMs = 8_000;
+const fetchConcurrency = 20;
 
 export type HackerNewsItem = Record<string, unknown>;
 
@@ -15,13 +17,25 @@ function baseUrl(): string {
   return (process.env.HACKER_NEWS_API_URL?.trim() || defaultBaseUrl).replace(/\/$/, '');
 }
 
+// 优先用配置的数据源（如 HACKER_NEWS_API_URL 指向 proxy.0x2a.top 加速），
+// 失败自动回退直连 Firebase。
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${baseUrl()}${path}`, {
-    signal: AbortSignal.timeout(fetchTimeoutMs),
-    headers: { accept: 'application/json' },
-  });
-  if (!response.ok) throw new Error('hacker_news_unavailable');
-  return await response.json() as T;
+  const candidates = [...new Set([baseUrl(), defaultBaseUrl])];
+  let lastError: Error = new Error('hacker_news_unavailable');
+  for (const base of candidates) {
+    try {
+      const response = await fetch(`${base}${path}`, {
+        signal: AbortSignal.timeout(fetchTimeoutMs),
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`hacker_news_http_${response.status}`);
+      return await response.json() as T;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('hacker_news_unavailable');
+      console.warn(`[geekread] HN fetch failed via ${base}: ${lastError.message}`);
+    }
+  }
+  throw lastError;
 }
 
 export async function fetchStoryIds(type: 'top' | 'latest'): Promise<{

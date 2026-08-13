@@ -17,3 +17,7 @@ arkts/entry/**/signing-config.json
 .local/
 material/
 *-signed.app
+
+# arkts-code-check 工具产物
+review_report.md
+review_results.json

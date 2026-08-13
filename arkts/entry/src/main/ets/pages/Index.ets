@@ -33,7 +33,7 @@ struct Index {
   @State store: AppStore = new AppStore()
 
   aboutToAppear(): void {
-    this.store.initialize(this.getUIContext().getHostContext() as common.UIAbilityContext)
+    this.store.initialize(this.getUIContext().getHostContext() as common.UIAbilityContext, this.getUIContext())
     entryIntentInbox.subscribe(this)
   }
 
@@ -49,19 +49,34 @@ struct Index {
     this.store.resume()
   }
 
+  // 系统返回键：栈里还有其他页面 → 弹栈；已在首页根（空栈）→ 移到后台（最小化），
+  // 与系统/其他 App 的返回手势默认行为一致，而非 terminateSelf() 杀掉进程退出。
+  onBackPress(): boolean {
+    if (this.store.canGoBack) {
+      this.store.back()
+      return true
+    }
+    const ctx = this.getUIContext().getHostContext() as common.UIAbilityContext
+    ctx.moveAbilityToBackground().catch(() => {})
+    return true
+  }
+
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
       Navigation(this.store.pathStack) {
-        // 根内容 = 启动页：goHome 后 replaceAll(GeekReader) 清栈压入阅读器。
-        SplashPage({ store: this.store })
+        // 根内容：启动阶段 SplashPage，完成后 GeekReader（阅读器）。
+        // GeekReader 是导航根（栈空时显示）：启动后不压栈、导航到它清栈，
+        // 保证全局只有一个阅读器实例；从它返回即退出 App。
+        if (!this.store.splashDone) {
+          SplashPage({ store: this.store })
+        } else {
+          GeekReaderPage({ store: this.store })
+        }
       }
       .mode(NavigationMode.Stack)
       .navDestination(this.RouteDest)
       .hideTitleBar(true)
       .width('100%').height('100%')
-      if (this.store.toastMessage.length > 0) {
-        ToastHost({ store: this.store })
-      }
     }
     .width('100%').height('100%').backgroundColor(AppColors.background)
   }
@@ -72,9 +87,9 @@ struct Index {
       NavDestination() { GeekReaderPage({ store: this.store }) }.hideTitleBar(true)
     } else if (name === `route_${AppRoute.Home}`) {
       NavDestination() { HomePage({ store: this.store }) }.hideTitleBar(true)
-      NavDestination() { GeekReaderPage({ store: this.store }) }.hideTitleBar(true)
     } else if (name === `route_${AppRoute.GeekReaderDetail}`) {
-      NavDestination() { StoryDetailPage({ store: this.store }) }.title('文章').hideTitleBar(false)
+      // 标题栏动态显示文章标题（store.detailTitle），与其他子页面布局一致（无内部 NavDestination）
+      NavDestination() { StoryDetailPage({ store: this.store }) }.title(this.DetailTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Settings}`) {
       NavDestination() { SettingsPage({ store: this.store }) }.title('设置').hideTitleBar(false)
     } else if (name === `route_${AppRoute.About}`) {
@@ -118,6 +133,8 @@ struct Index {
       NavDestination() { OrdersPage({ store: this.store, remote: this.store.remote }) }.title('订单记录').hideTitleBar(false)
     } else if (name === `route_${AppRoute.Profile}`) {
       NavDestination() { ProfilePage({ store: this.store }) }.title('我的').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.ProfileEdit}`) {
+      NavDestination() { ProfileEditPage({ store: this.store }) }.title('编辑资料').hideTitleBar(false)
     } else {
       // 未注册的路由 → 404（不静默掉进错误的通用页）
       NavDestination() { NotFoundPage() }.title('页面不存在').hideTitleBar(false)
@@ -156,6 +173,25 @@ struct Index {
     if (r === AppRoute.VerifyEmail) return '验证邮箱'
     if (r === AppRoute.ResetPassword) return '重置密码'
     return '登录'
+  }
+
+  // 文章详情标题栏：动态显示 store.detailTitle（StoryDetailPage 加载后写入）
+  // Row 撑满标题栏固定高度，默认 alignItems: VerticalAlign.Center 实现垂直居中；
+  // 水平方向跟随系统标题栏左对齐（不强制居中），避免标题被推到右半区
+  @Builder
+  DetailTitle() {
+    Row() {
+      Text(this.store.detailTitle)
+        .fontSize(17)
+        .fontWeight(FontWeight.Bold)
+        .maxLines(1)
+        .padding({left: 4})
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .textAlign(TextAlign.Start)
+        .constraintSize({ maxWidth: '80%' })
+    }
+    .width('100%')
+    .height('100%')
   }
 }
 
@@ -273,25 +309,6 @@ struct SettingsHost {
       this.store.route === AppRoute.Language || this.store.route === AppRoute.TextSize
   }
 }
-
-@Component
-struct ToastHost {
-  @ObjectLink store: AppStore
-  build() {
-    Row({ space: AppSpacing.x3 }) {
-      AppIcon({
-        name: this.store.toastError ? AppIconName.Alert : AppIconName.Check,
-        color: this.store.toastError ? AppColors.error : AppColors.success,
-        iconSize: 20
-      })
-      Text(this.store.toastMessage).fontColor(AppColors.text)
-    }
-    .margin(AppSpacing.x4).padding(AppSpacing.x4).width('90%')
-    .backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
-    .shadow({ radius: 16, color: '#26000000', offsetY: 4 })
-  }
-}
-
 
 @Component
 struct NotFoundPage {

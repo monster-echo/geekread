@@ -269,6 +269,10 @@
       "value": "[dipadam]"
     },
     {
+      "name": "share",
+      "value": "Kongsi"
+    },
+    {
       "name": "translation_display",
       "value": "Paparan terjemahan"
     },

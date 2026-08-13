@@ -114,7 +114,6 @@ export struct ProfilePage {
         }
         .layoutWeight(1)
       }
-      BottomTabs({ store: this.store, selected: AppRoute.Profile })
     }
     .width('100%')
     .height('100%')
@@ -130,7 +129,7 @@ export struct ProfilePage {
       ]
     }).then(result => {
       if (result.index === 1) {
-        this.store.signOut().then(() => this.store.replaceAll(AppRoute.Home))
+        this.store.signOut().then(() => this.store.goHome())
       }
     })
   }
@@ -139,6 +138,16 @@ export struct ProfilePage {
 @Component
 export struct ProfileIdentityCard {
   @ObjectLink store: AppStore
+
+  private identityLine(): string {
+    const user = this.store.user
+    if (user === null) return ''
+    const email = user.email ?? ''
+    const username = user.username ?? ''
+    // 无真实邮箱（华为/手机号登录）不展示 email，只显示 @用户名
+    const isFake = user.hasEmail !== true
+    return isFake || email.length === 0 ? `@${username}` : `@${username} · ${email}`
+  }
 
   build() {
     Row({ space: AppSpacing.x4 }) {
@@ -157,7 +166,7 @@ export struct ProfileIdentityCard {
       Column({ space: AppSpacing.x1 }) {
         Text(this.store.user?.displayName ?? '')
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
-        Text(`@${this.store.user?.username ?? ''} · ${this.store.user?.email ?? ''}`)
+        Text(this.identityLine())
           .fontSize(13).fontColor(AppColors.textSecondary)
         if ((this.store.user?.bio ?? '').length > 0) {
           Text(this.store.user?.bio ?? '').fontSize(13).fontColor(AppColors.textSecondary)

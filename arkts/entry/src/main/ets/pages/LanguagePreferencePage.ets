@@ -52,7 +52,16 @@ export struct LanguagePreferencePage {
               .fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(LANGUAGES, (code: string) => {
-                this.OptionRow('lang', code, this.language === code, () => { this.language = code })
+                Row({ space: AppSpacing.x3 }) {
+                  Radio({ group: 'lang', value: code }).checked(this.language === code)
+                    .onChange((isChecked: boolean) => { console.log('[radio] lang onChange', code, isChecked); if (isChecked) this.language = code })
+                  Text(languageLabel(code))
+                    .fontSize(16).fontColor(AppColors.text).layoutWeight(1)
+                    .onClick(() => { console.log('[radio] lang onClick', code); this.language = code })
+                }
+                .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
+                .backgroundColor(AppColors.surface)
+                .onClick(() => { console.log('[radio] row onClick', code); this.language = code })
               })
             }.backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
           }.alignItems(HorizontalAlign.Start).width('100%')
@@ -63,7 +72,16 @@ export struct LanguagePreferencePage {
               .fontSize(13).fontColor(AppColors.textSecondary).width('100%')
             Column() {
               ForEach(DISPLAY_MODES, (mode: string) => {
-                this.OptionRow('display', mode, this.displayMode === mode, () => { this.displayMode = mode })
+                Row({ space: AppSpacing.x3 }) {
+                  Radio({ group: 'display', value: mode }).checked(this.displayMode === mode)
+                    .onChange((isChecked: boolean) => { console.log('[radio] display onChange', mode, isChecked); if (isChecked) this.displayMode = mode })
+                  Text(displayLabel(mode, this.store.language))
+                    .fontSize(16).fontColor(AppColors.text).layoutWeight(1)
+                    .onClick(() => { console.log('[radio] display onClick', mode); this.displayMode = mode })
+                }
+                .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
+                .backgroundColor(AppColors.surface)
+                .onClick(() => { console.log('[radio] display row onClick', mode); this.displayMode = mode })
               })
             }.backgroundColor(AppColors.surface).borderRadius(AppRadii.card)
           }.alignItems(HorizontalAlign.Start).width('100%')
@@ -80,27 +98,8 @@ export struct LanguagePreferencePage {
     }.width('100%').height('100%')
   }
 
-  @Builder
-  OptionRow(group: string, value: string, selected: boolean, onTap: () => void) {
-    Row({ space: AppSpacing.x3 }) {
-      Radio({ group: group, value: value }).checked(selected)
-        .onChange(() => onTap())
-      Text(this.labelFor(value))
-        .fontSize(16)
-        .fontColor(AppColors.text)
-        .layoutWeight(1)
-    }
-    .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
-    .backgroundColor(AppColors.surface)
-    .onClick(onTap)
-  }
-
-  private labelFor(value: string): string {
-    if (LANGUAGES.indexOf(value) >= 0) return languageLabel(value)
-    return displayLabel(value, this.store.language)
-  }
-
   private async save(): Promise<void> {
+    console.log(`[radio] save language=${this.language} displayMode=${this.displayMode}`)
     await this.store.saveSetting('language', this.language)
     await this.store.saveSetting('translationDisplay', this.displayMode)
   }

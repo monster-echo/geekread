@@ -74,7 +74,8 @@ export enum AppString {
   PointsComments,
   Comments,
   ReadOriginal,
-  Deleted
+  Deleted,
+  Share
 }
 
 let context: common.UIAbilityContext | null = null
@@ -157,6 +158,7 @@ function resName(key: AppString): string {
     case AppString.Comments: return 'comments'
     case AppString.ReadOriginal: return 'read_original'
     case AppString.Deleted: return 'deleted'
+    case AppString.Share: return 'share'
     default: return ''
   }
 }

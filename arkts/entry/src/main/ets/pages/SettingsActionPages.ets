@@ -7,7 +7,7 @@ import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { LegalDocument } from '../domain/Models'
 import { pickAvatarDataUrl } from '../media/AvatarPicker'
 import { appString, AppString } from '../localization/AppStrings'
-import { lvMarkdownIn } from '@luvi/lv-markdown-in'
+import { Markdown, MarkdownController } from '@luvi/lv-markdown-in'
 
 @Component
 export struct AccountSecurityPage {
@@ -15,13 +15,21 @@ export struct AccountSecurityPage {
   @State currentPassword: string = ''
   @State newPassword: string = ''
 
+  private displayEmail(): string {
+    const email = this.store.user?.email ?? ''
+    if (email.length === 0) return '未设置'
+    // 伪邮箱（华为/手机号自动生成的 xxx@phone.invalid）不展示
+    const isFake = email.endsWith('@phone.invalid') || email.endsWith('@invalid.local')
+    return isFake ? '未设置' : email
+  }
+
   build() {
     Column() {
       PageHeader({ store: this.store, title: '账户与安全' })
       Column({ space: AppSpacing.x4 }) {
         AppListRow({ store: this.store, label: '登录邮箱',
-          value: this.store.user?.email ?? '未登录' })
-        PasswordInput({ label: '当前密码', value: this.currentPassword,
+          value: this.displayEmail() })
+        PasswordInput({ label: '当前密码（首次设置可留空）', value: this.currentPassword,
           changed: value => this.currentPassword = value })
         PasswordInput({ label: '至少 8 位新密码', value: this.newPassword,
           changed: value => this.newPassword = value })
@@ -113,8 +121,10 @@ export struct ChoicePreferencePage {
             ForEach(this.options(), (option: string) => {
               Row({ space: AppSpacing.x3 }) {
                 Radio({ group: this.groupName(), value: option }).checked(option === this.selected)
-                  .onChange(() => this.selected = option)
+                  .onChange((isChecked: boolean) => { if (isChecked) this.selected = option })
                 Text(this.label(option)).fontSize(16).fontColor(AppColors.text)
+                  .layoutWeight(1)
+                  .onClick(() => this.selected = option)
               }
               .width('100%').height(52).padding({ left: AppSpacing.x4, right: AppSpacing.x4 })
               .backgroundColor(AppColors.surface)
@@ -216,6 +226,22 @@ export struct LegalPage {
 export struct LegalDocumentPage {
   @ObjectLink store: AppStore
   @Prop type: string
+  private mdController: MarkdownController = new MarkdownController()
+
+  aboutToAppear(): void {
+    // 深色模式适配：库默认文字色是写死的暗色，这里用 $r 资源（base/dark 自动切换）覆盖
+    this.mdController
+      .setTextColor(AppColors.text)
+      .setTitleColor(AppColors.text)
+      .setQuoteTextColor(AppColors.textSecondary)
+      .setQuoteBorderColor(AppColors.brand)
+      .setQuoteBackgroundColor(AppColors.surfaceMuted)
+      .setHyperlinkTextColor(AppColors.brand)
+      .setInlineCodeColor(AppColors.text)
+      .setInlineCodeBackgroundColor(AppColors.surfaceMuted)
+      .setUlPointColor(AppColors.text)
+      .setLineColor(AppColors.border)
+  }
 
   build() {
     Column() {
@@ -226,11 +252,7 @@ export struct LegalDocumentPage {
             Text('当前 App 尚未配置该协议文档。').fontColor(AppColors.textSecondary)
           } else {
             Text(`版本 ${this.document()?.revision ?? ''}`).fontColor(AppColors.textSecondary)
-            // 用现成 lv-markdown-in 渲染完整 markdown
-            lvMarkdownIn({
-              text: this.document()?.content ?? '',
-              loadMode: 'text'
-            })
+            Markdown({ controller: this.mdController, text: this.document()?.content ?? '' })
           }
         }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4).width('100%')
       }.layoutWeight(1)
@@ -272,11 +294,13 @@ export struct AboutPage {
 @Component
 export struct ProfileEditPage {
   @ObjectLink store: AppStore
+  @State username: string = ''
   @State displayName: string = ''
   @State bio: string = ''
   @State avatarUrl: string = ''
 
   aboutToAppear(): void {
+    this.username = this.store.user?.username ?? ''
     this.displayName = this.store.user?.displayName ?? ''
     this.bio = this.store.user?.bio ?? ''
     this.avatarUrl = this.store.user?.avatarUrl ?? ''
@@ -302,9 +326,10 @@ export struct ProfileEditPage {
           }
           AppButton({ label: appString(AppString.ChooseAvatar, this.store.language),
             icon: AppIconName.User, onTap: () => this.pickAvatar() })
-          AppListRow({ store: this.store,
-            label: appString(AppString.UsernameReadonly, this.store.language),
-            value: `@${this.store.user?.username ?? ''}` })
+          TextInput({ placeholder: '用户名（2-24 字符）',
+            text: this.username })
+            .height(52).maxLength(24).backgroundColor(AppColors.surface)
+            .borderRadius(AppRadii.control).onChange(value => this.username = value)
           TextInput({ placeholder: appString(AppString.DisplayName, this.store.language),
             text: this.displayName })
             .height(52).maxLength(40).backgroundColor(AppColors.surface)
@@ -316,7 +341,7 @@ export struct ProfileEditPage {
             ? appString(AppString.Saving, this.store.language)
             : appString(AppString.SaveProfile, this.store.language),
             icon: AppIconName.Check,
-            onTap: () => this.store.updateProfile(this.displayName, this.bio, this.avatarUrl) })
+            onTap: () => this.store.updateProfile(this.username, this.displayName, this.bio, this.avatarUrl) })
         }
         .padding(AppSpacing.x4)
         .width('100%')

@@ -194,6 +194,8 @@ export interface AppUser {
   emailVerified: boolean
   consentVersion: string | null
   createdAt: string
+  // 是否有真实邮箱（false=华为/手机号自动生成的伪邮箱，不展示 email）
+  hasEmail: boolean
 }
 
 export interface BootstrapPayload {

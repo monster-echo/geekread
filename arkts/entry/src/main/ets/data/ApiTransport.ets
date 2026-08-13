@@ -1,5 +1,5 @@
 import http from '@ohos.net.http'
-import { TelemetryBatch, TelemetryValue } from '../telemetry/Telemetry'
+import { telemetry, TelemetryBatch, TelemetryValue } from '../telemetry/Telemetry'
 import {
   ApiEnvelope,
   ApiErrorBody,
@@ -56,19 +56,22 @@ export class ApiFailure extends Error {
   readonly status: number
   readonly retryable: boolean
   readonly fieldErrors?: Record<string, string[]>
+  readonly retryAfterSeconds?: number
 
   constructor(
     code: string,
     message: string,
     status: number,
     retryable: boolean,
-    fieldErrors?: Record<string, string[]>
+    fieldErrors?: Record<string, string[]>,
+    retryAfterSeconds?: number
   ) {
     super(message)
     this.code = code
     this.status = status
     this.retryable = retryable
     this.fieldErrors = fieldErrors
+    this.retryAfterSeconds = retryAfterSeconds
   }
 }
 
@@ -134,7 +137,9 @@ export class ApiTransport {
         return this.request<T>(path, method, body, extraHeaders, true)
       }
       if (response.responseCode < 200 || response.responseCode >= 300) {
-        if (response.responseCode === 401 && !retried) {
+        // 认证类接口的 401 是凭证/登录错误，不是会话过期——不触发登出跳转，
+        // 让登录页留在原地提示错误。
+        if (response.responseCode === 401 && !retried && !this.isAuthRequest(path)) {
           this.sessionExpiredCallback?.()
         }
         throw this.parseFailure(text, response.responseCode)
@@ -145,16 +150,28 @@ export class ApiTransport {
     }
   }
 
+  private isAuthRequest(path: string): boolean {
+    return path === '/api/v1/auth/sign-in' ||
+      path === '/api/v1/auth/sign-up' ||
+      path === '/api/v1/auth/phone/verify' ||
+      path === '/api/v1/auth/social' ||
+      path === '/api/v1/auth/refresh'
+  }
+
   private parseFailure(text: string, status: number): ApiFailure {
     try {
       const failure = JSON.parse(text) as ApiErrorBody
       const error = failure.error
+      // API 失败埋点：console + telemetry（app_error），便于排查前端请求问题
+      console.error(`[geekread][api] ${status} ${error.code} ${error.message}`)
+      telemetry.report(new Error(`api_${status}_${error.code}`))
       return new ApiFailure(
         error.code,
         specificErrorMessage(error.message, error.fieldErrors),
         status,
         error.retryable,
-        error.fieldErrors
+        error.fieldErrors,
+        error.retryAfterSeconds
       )
     } catch (error) {
       if (error instanceof ApiFailure) return error

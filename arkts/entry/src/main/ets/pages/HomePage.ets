@@ -101,7 +101,6 @@ export struct HomePage {
         .padding(AppSpacing.x4)
       }
       .layoutWeight(1)
-      BottomTabs({ store: this.store, selected: AppRoute.Home })
     }
     .width('100%')
     .height('100%')
@@ -185,8 +184,8 @@ export struct BottomTabs {
   build() {
     Row() {
       TabItem({ label: localized('首页', 'Home', this.store.language),
-        icon: AppIconName.Home, active: this.selected === AppRoute.Home,
-        onTap: () => this.store.replaceAll(AppRoute.Home) })
+        icon: AppIconName.Home, active: this.selected === AppRoute.GeekReader,
+        onTap: () => this.store.replaceAll(AppRoute.GeekReader) })
       TabItem({
         label: localized('会员', 'Membership', this.store.language),
         icon: AppIconName.Crown,

@@ -269,6 +269,10 @@
       "value": "[削除済み]"
     },
     {
+      "name": "share",
+      "value": "共有"
+    },
+    {
       "name": "translation_display",
       "value": "翻訳表示"
     },

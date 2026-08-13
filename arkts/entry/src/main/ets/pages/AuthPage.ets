@@ -5,6 +5,7 @@ import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { SocialAuthSheet } from './SocialAuthSheet'
 import { loginComponentManager, LoginWithHuaweiIDButton } from '@kit.AccountKit'
 import { BusinessError } from '@kit.BasicServicesKit'
+import { telemetry } from '../telemetry/Telemetry'
 
 export enum AuthMode {
   SignIn,
@@ -52,7 +53,9 @@ export struct AuthPage {
           })
             .height(52)
             .backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control)
+            .placeholderColor(AppColors.textSecondary)
             .onChange(value => this.email = value)
         } else {
           Text(this.store.recoveryEmail)
@@ -72,13 +75,16 @@ export struct AuthPage {
               this.mode === AuthMode.Phone ? InputType.Number : InputType.Password)
             .backgroundColor(AppColors.surface)
             .borderRadius(AppRadii.control)
+            .placeholderColor(AppColors.textSecondary)
             .onChange(value => this.password = value)
         }
         if (this.mode === AuthMode.SignUp) {
           TextInput({ placeholder: '用户名', text: this.username })
             .height(52)
             .backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control)
+            .placeholderColor(AppColors.textSecondary)
             .onChange(value => this.username = value)
         }
         AppButton({
@@ -89,34 +95,12 @@ export struct AuthPage {
           Text('其他登录方式')
             .fontSize(12)
             .fontColor(AppColors.textSecondary)
-          if (this.store.authProviders['huawei'] === true) {
-            if (this.huaweiButtonController !== null) {
-              Stack() {
-                LoginWithHuaweiIDButton({
-                  params: {
-                    style: loginComponentManager.Style.BUTTON_RED,
-                    loginType: loginComponentManager.LoginType.QUICK_LOGIN,
-                    borderRadius: 24,
-                    supportDarkMode: true
-                  },
-                  controller: this.huaweiButtonController
-                })
-                  .width('100%')
-                  .height(48)
-                // 未勾选「我已阅读并同意协议」时，覆盖层拦截点击，不拉起华为授权页
-                if (!this.consentAgreed) {
-                  Row()
-                    .width('100%')
-                    .height(48)
-                    .backgroundColor(Color.Transparent)
-                    .onClick(() => this.store.showToast('请先阅读并同意用户协议与隐私政策', true))
-                }
-              }
-              .width('100%')
-              .constraintSize({ maxWidth: 400 })
-            }
-          }
-          AuthProviderRow({ store: this.store, onSocial: (provider) => this.beginSocial(provider) })
+          AuthProviderRow({
+            store: this.store,
+            huaweiController: this.huaweiButtonController,
+            consentAgreed: this.consentAgreed,
+            onSocial: (provider) => this.beginSocial(provider)
+          })
           Text('忘记密码')
             .fontColor(AppColors.brand)
             .onClick(() => this.store.navigate(AppRoute.ForgotPassword))
@@ -161,6 +145,7 @@ export struct AuthPage {
   }
 
   private beginSocial(provider: string): void {
+    telemetry.click(`social_${provider}`, 'auth')
     if (!this.ensureConsent()) return
     if (provider === 'phone') {
       this.store.navigate(AppRoute.PhoneSignIn)
@@ -218,6 +203,7 @@ export struct AuthPage {
     if (this.store.busy) {
       return
     }
+    telemetry.click(`auth_submit_${this.mode}`, 'auth')
     switch (this.mode) {
       case AuthMode.Forgot:
         if (await this.store.requestPasswordReset(this.email)) {
@@ -237,13 +223,13 @@ export struct AuthPage {
         return
       case AuthMode.Phone:
         if (!this.phoneCodeSent) {
-          if (await this.store.requestPhoneCode(this.email)) {
+          if (await this.store.requestPhoneCode(this.normalizePhone(this.email))) {
             this.phoneCodeSent = true
             this.store.showToast('验证码已发送')
           }
           return
         }
-        if (await this.store.verifyPhoneCode(this.email, this.password)) {
+        if (await this.store.verifyPhoneCode(this.normalizePhone(this.email), this.password)) {
           this.store.showToast('手机号登录成功')
           this.store.completeAuthentication()
         }
@@ -277,9 +263,16 @@ export struct AuthPage {
   }
 
   private accountPlaceholder(): string {
-    if (this.mode === AuthMode.Phone) return '+86 13800000000'
+    if (this.mode === AuthMode.Phone) return '请输入手机号'
     if (this.mode === AuthMode.SignIn) return '用户名、邮箱或手机号'
     return '邮箱'
+  }
+
+  /** 手机号：国内默认 +86，用户只输 11 位，提交时自动补国家码。 */
+  private normalizePhone(input: string): string {
+    const t = input.trim()
+    if (t.length === 0) return t
+    return t.startsWith('+') ? t : `+86${t}`
   }
 
   private termsRevision(): string {
@@ -316,10 +309,42 @@ export struct AuthPage {
 @Component
 struct AuthProviderRow {
   @ObjectLink store: AppStore
+  huaweiController: loginComponentManager.LoginWithHuaweiIDButtonController | null = null
+  // @Prop 响应式：父组件 @State consentAgreed 变化时覆盖层实时消失，
+  // 否则普通字段不更新，勾选后仍拦截提示"请先同意"。
+  @Prop consentAgreed: boolean = false
   onSocial: (provider: string) => void = () => {}
 
   build() {
     Row({ space: AppSpacing.x5 }) {
+      // 华为一键登录：官方圆形 ICON（与其他登录方式一致）
+      if (this.store.authProviders['huawei'] === true && this.huaweiController !== null) {
+        Column({ space: AppSpacing.x1 }) {
+          Stack() {
+            LoginWithHuaweiIDButton({
+              params: {
+                style: loginComponentManager.Style.ICON_RED,
+                loginType: loginComponentManager.LoginType.QUICK_LOGIN,
+                supportDarkMode: true
+              },
+              controller: this.huaweiController
+            })
+              .width(52)
+              .height(52)
+            // 未勾选协议时覆盖层拦截，不拉起华为授权页
+            if (!this.consentAgreed) {
+              Row()
+                .width(52)
+                .height(52)
+                .backgroundColor(Color.Transparent)
+                .onClick(() => this.store.showToast('请先阅读并同意用户协议与隐私政策', true))
+            }
+          }
+          .width(52)
+          .height(52)
+          Text('华为').fontSize(12).fontColor(AppColors.textSecondary)
+        }
+      }
       AuthProviderButton({
         label: '手机号',
         icon: $r('app.media.phone'),
@@ -364,7 +389,7 @@ struct AuthProviderButton {
         .height(52)
         .justifyContent(FlexAlign.Center)
         .backgroundColor(AppColors.surface)
-        .border({ width: 1, color: AppColors.border })
+        .border({ width: 1, color: AppColors.textSecondary })
         .borderRadius(26)
       Text(this.label).fontSize(12).fontColor(AppColors.textSecondary)
     }

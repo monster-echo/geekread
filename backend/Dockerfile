@@ -16,5 +16,6 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/package.json ./package.json
+COPY warm-cache.cjs ./warm-cache.cjs
 EXPOSE 8787
 CMD ["npm","start"]

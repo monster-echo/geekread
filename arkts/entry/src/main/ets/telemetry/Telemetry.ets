@@ -93,6 +93,13 @@ class Telemetry {
     this.track('app_error', properties)
   }
 
+  /** 记录用户点击（按钮/入口），便于追踪操作路径。 */
+  click(button: string, screenId: string = this.currentScreen): void {
+    const properties = new Map<string, TelemetryValue>()
+    properties.set('button', button)
+    this.track('click', properties, screenId)
+  }
+
   private scheduleFlush(delayMs: number): void {
     if (this.flushing || this.flushScheduled || this.queue.length === 0) {
       return

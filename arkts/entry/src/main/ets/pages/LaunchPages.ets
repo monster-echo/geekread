@@ -80,8 +80,9 @@ export struct SplashPage {
   goHome(): void {
     if (this.done) return
     this.done = true
-    // 极客译读是单用途 app，直接进阅读器（壳的辅助功能在汉堡抽屉里）。
-    this.store.replaceAll(AppRoute.GeekReader)
+    // 标记 splash 完成：根内容直接切到阅读器（GeekReader 是导航根）。
+    // 不 replaceAll 压栈——否则根里一个、栈顶又一个，出现两个阅读器。
+    this.store.splashDone = true
   }
 
   build() {
@@ -200,7 +201,7 @@ export struct OnboardingPage {
         .fontColor(AppColors.textSecondary)
       AppButton({
         label: '完成引导',
-        onTap: () => this.store.replaceAll(AppRoute.Home)
+        onTap: () => this.store.goHome()
       })
     }
     .padding(AppSpacing.x6)

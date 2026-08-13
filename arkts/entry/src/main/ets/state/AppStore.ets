@@ -1,5 +1,6 @@
 import common from '@ohos.app.ability.common'
 import { ConfigurationConstant } from '@kit.AbilityKit'
+import { UIContext } from '@kit.ArkUI'
 import { apiClient, ApiFailure } from '../data/ApiClient'
 import { localStore } from '../data/LocalStore'
 import { AppUser, AuthPayload, OrderStatus, OrderView, PurchaseStatus, RuntimeConfig }
@@ -62,8 +63,13 @@ export class AppStore {
   pathStack: NavPathStack = new NavPathStack()
   signedIn: boolean = false
   online: boolean = true
+  // 当前文章详情标题（StoryDetailPage 加载后写入，供 NavDestination 标题栏显示）
+  detailTitle: string = ''
   // bootstrapped：初始 bootstrap 是否完成（成功或失败）；品牌闪屏据此判断"配置拉取完成"。
   bootstrapped: boolean = false
+  // splashDone：启动流程（splash）是否已完成。完成后根内容换成主界面，
+  // 避免登录页/会话过期 replaceAll 后返回 pop 空栈时回到 splash。
+  splashDone: boolean = false
   busy: boolean = false
   theme: string = 'system'
   language: string = 'zh-CN'
@@ -73,8 +79,6 @@ export class AppStore {
   translationDisplayMode: string = 'both'
   config: RuntimeConfig | null = null
   user: AppUser | null = null
-  toastMessage: string = ''
-  toastError: boolean = false
   authProviders: Record<string, boolean> = {}
   authProviderPolicy: Record<string, boolean> = {}
   authProviderConfig: Record<string, Object> = {}
@@ -88,6 +92,7 @@ export class AppStore {
   pendingPlanId: string = ''
   remote: RemoteDataStore = new RemoteDataStore()
   private context: common.UIAbilityContext | null = null
+  private uiContext: UIContext | null = null
   private iap: HMSIapProvider = new HMSIapProvider()
   private initialized: boolean = false
 
@@ -98,8 +103,9 @@ export class AppStore {
   private queuedEntryName: string | null = null
   private queuedEntryCold: boolean = false
 
-  async initialize(context: common.UIAbilityContext): Promise<void> {
+  async initialize(context: common.UIAbilityContext, uiContext: UIContext): Promise<void> {
     this.context = context
+    this.uiContext = uiContext
     initAppStrings(context)
     await localStore.initialize(context)
     this.applyPreferences()
@@ -123,9 +129,12 @@ export class AppStore {
       this.online = true
       localStore.saveConfig(payload.config)
       this.cacheUserPreferences()
+      console.log(`[geekread][init] bootstrap ok signedIn=${this.signedIn}`)
     } catch (error) {
       this.online = false
       this.showToast('当前使用离线配置', true)
+      console.error('[geekread][init] bootstrap failed', error)
+      if (error instanceof Error) telemetry.report(new Error(`bootstrap: ${error.message}`))
     }
     this.configureTelemetry()
     this.applyPreferences()
@@ -169,6 +178,7 @@ export class AppStore {
     this.translationDisplayMode = (display === 'original' || display === 'translation' || display === 'both')
       ? display
       : 'both'
+    console.log(`[geekread][debug] applyPreferences lang=${language} display=${display} -> this.language=${this.language} this.displayMode=${this.translationDisplayMode}`)
     const colorMode = theme === 'dark'
       ? ConfigurationConstant.ColorMode.COLOR_MODE_DARK
       : theme === 'light'
@@ -191,17 +201,33 @@ export class AppStore {
         if (!Number.isNaN(v) && v >= 0) return v as AppRoute
       }
     }
-    return this.routeStack[this.routeStack.length - 1]
+    // 栈空：启动完成后根内容 = 阅读器（首页），返回 GeekReader 而非 Logo，
+    // 保证"已在首页"的幂等判断成立，避免 warm 深链误压 route_GeekReader 副本。
+    return this.splashDone ? AppRoute.GeekReader : AppRoute.Logo
   }
 
   get canGoBack(): boolean {
-    return this.pathStack.getAllPathName().length > 1
+    // 首页（阅读器）是导航根（空栈），栈里有其他页面即可返回。
+    return this.pathStack.getAllPathName().length > 0
+  }
+
+  /** 回首页（阅读器，导航根）：清栈回根，永不压 route_GeekReader 副本。 */
+  goHome(): void {
+    this.pathStack.clear()
+    telemetry.screen(AppRoute.GeekReader.toString())
   }
 
   navigate(route: AppRoute): void {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
     if (decision.unavailable) this.showToast('当前 App 未启用此功能')
+    // 已是目标页面时不重复压栈（避免首页等被多次进入、返回时"两次"）。
+    if (this.route === decision.route) return
+    if (decision.route === AppRoute.GeekReader) {
+      // 阅读器是导航根（Index 根内容），导航到它 = 清栈回根，不压副本。
+      this.goHome()
+      return
+    }
     // 根 Navigation：压栈，源页面保留。
     this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
@@ -228,6 +254,11 @@ export class AppStore {
     const decision = guardRoute(target, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
     if (decision.unavailable) this.showToast('当前 App 未启用此功能')
+    if (decision.route === AppRoute.GeekReader) {
+      // 深链到首页：清栈回根，不压 route_GeekReader 副本。
+      this.goHome()
+      return
+    }
     if (cold) {
       this.pathStack.clear()
       this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
@@ -244,6 +275,10 @@ export class AppStore {
   replaceAll(route: AppRoute): void {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
+    if (decision.route === AppRoute.GeekReader) {
+      this.goHome()
+      return
+    }
     this.pathStack.clear()
     this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
@@ -252,14 +287,24 @@ export class AppStore {
   replaceTop(route: AppRoute): void {
     const decision = guardRoute(route, this.signedIn, this.config)
     if (decision.pending !== null) this.pendingRoute = decision.pending
+    if (decision.route === AppRoute.GeekReader) {
+      this.goHome()
+      return
+    }
     this.pathStack.pop()
     this.pathStack.pushPathByName(`route_${decision.route}`, decision.route)
     telemetry.screen(decision.route.toString())
   }
 
   completeAuthentication(): void {
-    const target = this.pendingRoute ?? AppRoute.Home
+    // 登录成功：有 pendingRoute（原想访问的 returnUrl）则跳它，否则回首页（阅读器）。
+    const target = this.pendingRoute ?? AppRoute.GeekReader
     this.pendingRoute = null
+    if (target === AppRoute.GeekReader) {
+      // 首页是导航根：清栈回根，不压 route_GeekReader 副本。
+      this.goHome()
+      return
+    }
     this.replaceTop(target)
   }
 
@@ -396,8 +441,16 @@ export class AppStore {
       this.user.settings[key] = value
     }
     this.applyPreferences()
+    // 仅同步服务端支持的设置键；设备级偏好（translationDisplay 等）只存本地，
+    // 避免服务端校验不通过返回"请检查输入内容"。
+    if (key !== 'theme' && key !== 'language' && key !== 'textScale') {
+      this.busy = false
+      this.showToast('设置已保存')
+      return true
+    }
     if (!this.signedIn) {
       this.busy = false
+      this.showToast('设置已保存')
       return true
     }
     try {
@@ -458,11 +511,11 @@ export class AppStore {
     }
   }
 
-  async updateProfile(displayName: string, bio: string, avatarUrl: string): Promise<boolean> {
+  async updateProfile(username: string, displayName: string, bio: string, avatarUrl: string): Promise<boolean> {
     if (!this.signedIn || this.busy) return false
     this.busy = true
     try {
-      this.user = await apiClient.updateProfile(displayName, bio, avatarUrl)
+      this.user = await apiClient.updateProfile(username, displayName, bio, avatarUrl)
       this.showToast('个人资料已同步到服务端')
       return true
     } catch (error) {
@@ -547,8 +600,9 @@ export class AppStore {
         // Best-effort membership refresh: re-bootstrap so the user tier reflects
         // the purchase. `initialize` needs the UIAbilityContext captured at boot.
         const context = this.context
+        const ui = this.uiContext
         try {
-          if (context !== null) { await this.initialize(context) }
+          if (context !== null && ui !== null) { await this.initialize(context, ui) }
         } catch (e) { /* best-effort membership refresh */ }
       }
       return verified.status === OrderStatus.Success
@@ -573,13 +627,16 @@ export class AppStore {
   }
 
   showToast(message: string, error: boolean = false): void {
-    this.toastMessage = message
-    this.toastError = error
-    setTimeout(() => {
-      if (this.toastMessage === message) {
-        this.toastMessage = ''
-      }
-    }, 2400)
+    const ui = this.uiContext
+    if (ui === null) return
+    // 原生 toast，顶部对齐（offset 单位 px，避开状态栏）；error 时文字用红色调区分
+    ui.getPromptAction().showToast({
+      message,
+      duration: 2400,
+      alignment: Alignment.Top,
+      offset: { dx: 0, dy: 120 },
+      textColor: error ? '#FFB4A2' : '#FFFFFF',
+    })
   }
 
   private async authenticate(
@@ -609,7 +666,13 @@ export class AppStore {
 
   private showApiError(error: Error): void {
     if (error instanceof ApiFailure) {
-      this.showToast(error.message, true)
+      let message = error.message
+      if (error.retryAfterSeconds !== undefined && error.retryAfterSeconds > 0) {
+        const minutes = Math.floor(error.retryAfterSeconds / 60)
+        const seconds = error.retryAfterSeconds % 60
+        message = `${message}（${minutes} 分 ${seconds} 秒后重试）`
+      }
+      this.showToast(message, true)
       return
     }
     this.online = false
