@@ -63,9 +63,14 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
     })
     const text = String(response.result)
     if (response.responseCode < 200 || response.responseCode >= 300) {
+      console.error(`[geekread][reader] ${path} HTTP ${response.responseCode}`)
       throw new Error(`geekreader_${response.responseCode}`)
     }
     return text
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(`[geekread][reader] ${path} failed: ${msg}`)
+    throw new Error(`geekreader_network: ${msg}`)
   } finally {
     client.destroy()
   }
@@ -94,4 +99,16 @@ export async function fetchStoriesResolved(ids: number[]): Promise<Story[]> {
     if (s !== null) out.push(s)
   }
   return out
+}
+
+export interface ReaderQuota {
+  used: number
+  limit: number
+  remaining: number
+  isPro: boolean
+}
+
+export async function fetchQuota(): Promise<ReaderQuota> {
+  const text = await send('/api/reader/quota', http.RequestMethod.GET)
+  return JSON.parse(text) as ReaderQuota
 }

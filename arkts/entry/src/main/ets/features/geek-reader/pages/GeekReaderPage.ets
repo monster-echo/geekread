@@ -4,10 +4,10 @@ import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { localized, appString, AppString } from '../../../localization/AppStrings'
-import { fetchStories, fetchStoriesResolved } from '../data/GeekReaderApiClient'
+import { fetchQuota, fetchStories, fetchStoriesResolved, ReaderQuota } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
+import { telemetry } from '../../../telemetry/Telemetry'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
-import { StoryDetailPage } from './StoryDetailPage'
 
 const PAGE: number = 20
 
@@ -26,7 +26,7 @@ export struct GeekReaderPage {
   @State headerVisible: boolean = true
   @State refreshing: boolean = false
   @State drawerOpen: boolean = false
-  private pathStack: NavPathStack = new NavPathStack()
+  @State quota: ReaderQuota | null = null
 
   aboutToAppear(): void {
     // 页面由 Navigation 压栈保留，aboutToAppear 只在首次触发——回来不会重刷。
@@ -96,14 +96,23 @@ export struct GeekReaderPage {
   }
 
   private openStory(id: number): void {
-    // 压栈进详情；源页面（本阅读器）由 Navigation 保留不动，返回时不刷新、滚动位置不变。
+    telemetry.click('article_open', 'geekreader')
+    // 详情走外层导航栈（route_GeekReaderDetail），全局一条返回栈；返回回本页，滚动位置保留。
     this.store.geekReaderStoryId = id
-    this.pathStack.pushPathByName('detail', '')
+    this.store.navigate(AppRoute.GeekReaderDetail)
   }
 
   private goto(route: string): void {
     this.drawerOpen = false
     this.store.navigateByName(route)
+  }
+
+  private async loadQuota(): Promise<void> {
+    try {
+      this.quota = await fetchQuota()
+    } catch (e) {
+      this.quota = null
+    }
   }
 
   private onScrollDir(offset: number): void {
@@ -149,17 +158,27 @@ export struct GeekReaderPage {
         Text(this.store.signedIn ? '' : appString(AppString.Login, this.store.language)).fontSize(12).fontColor(AppColors.brand)
       }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
       .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
-      // Pro 会员入口（显示当前档位）
-      Row({ space: AppSpacing.x3 }) {
-        Text(this.store.user?.tierId === 'pro' ? 'Pro ✓' : '解锁 Pro')
-          .fontSize(16).fontColor(AppColors.brand).fontWeight(FontWeight.Bold).layoutWeight(1)
-        Text(this.store.user?.tierId === 'pro' ? '每日 500 次翻译' : '每日 500 次翻译').fontSize(11).fontColor(AppColors.textSecondary)
-      }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 })
-      .onClick(() => this.goto('membership.home'))
       this.MenuRow(appString(AppString.Settings, this.store.language), 'settings.home')
       this.MenuRow(appString(AppString.About, this.store.language), 'settings.about')
       this.MenuRow(appString(AppString.Legal, this.store.language), 'settings.legal')
       Blank()
+      // 底部：今日翻译额度进度 footer（点击 → 未登录登录页 / 已登录会员页）
+      Column({ space: AppSpacing.x2 }) {
+        Text('今日翻译额度').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
+        if (this.quota !== null) {
+          Progress({ value: this.quota.used, total: this.quota.limit, type: ProgressType.Linear })
+            .color(AppColors.brand).backgroundColor(AppColors.surfaceMuted).width('100%')
+        }
+        Row() {
+          Text(this.quota === null ? '额度暂不可用' : `已用 ${this.quota.used}/${this.quota.limit} 次`)
+            .fontSize(12).fontColor(AppColors.text).layoutWeight(1)
+          Text(this.store.user?.tierId === 'pro' ? 'Pro ✓' : '升级 Pro')
+            .fontSize(14).fontColor(AppColors.brand).fontWeight(FontWeight.Bold)
+        }.width('100%')
+      }
+      .width('100%')
+      .padding({ left: AppSpacing.x5, right: AppSpacing.x5, top: AppSpacing.x3, bottom: AppSpacing.x2 })
+      .onClick(() => this.goto(this.store.signedIn ? 'membership.home' : 'SignIn'))
       Text('GeekRead · ' + appString(AppString.GeekReaderTitle, this.store.language)).fontSize(11).fontColor(AppColors.textSecondary).padding(AppSpacing.x5)
     }.width('100%').height('100%').backgroundColor(AppColors.surface).alignItems(HorizontalAlign.Start)
   }
@@ -168,13 +187,13 @@ export struct GeekReaderPage {
   MenuRow(title: string, route: string) {
     Row({ space: AppSpacing.x3 }) {
       Text(title).fontSize(16).fontColor(AppColors.text).layoutWeight(1)
-    }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 }).onClick(() => this.goto(route))
+    }.width('100%').height(56).padding({ left: AppSpacing.x5, right: AppSpacing.x4 }).onClick(() => { telemetry.click(`menu_${route}`, 'geekreader'); this.goto(route) })
   }
 
   @Builder
   StoryItem(s: Story) {
     Column({ space: AppSpacing.x1 }) {
-      ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true })
+      ImmersiveTranslation({ text: s.title, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true, rich: false })
       Text(`${s.score}${appString(AppString.PointsComments, this.store.language)}${s.by} · ${s.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
         .fontSize(12).fontColor(AppColors.textSecondary)
     }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4)
@@ -199,24 +218,16 @@ export struct GeekReaderPage {
     }
   }
 
-  @Builder
-  DetailDest(name: string, param: object) {
-    if (name === 'detail') {
-      StoryDetailPage({ store: this.store })
-    }
-  }
-
   build() {
     SideBarContainer() {
       this.DrawerMenu()
-      Navigation(this.pathStack) {
-        Column() {
+      Column() {
           // 顶栏：汉堡 + 标题（向上滚收起，向下滚展开）
           Row() {
-            Row() { Text('☰').fontSize(24).fontColor(AppColors.text) }
+            Row() { Text('☰').fontSize(24).fontColor(AppColors.brand) }
               .width(48).height(48).justifyContent(FlexAlign.Center)
-              .onClick(() => { this.vibrate(); this.drawerOpen = true })
-            Text(appString(AppString.GeekReaderTitle, this.store.language)).fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+              .onClick(() => { telemetry.click('menu_open', 'geekreader'); this.vibrate(); this.drawerOpen = true })
+            Text(this.store.config?.brand.appName ?? '极客译读').fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
               .layoutWeight(1).textAlign(TextAlign.Center)
             Blank().width(48)
           }.width('100%').height(this.headerVisible ? 56 : 0)
@@ -263,23 +274,18 @@ export struct GeekReaderPage {
               }
             }.tabBar(appString(AppString.LatestStories, this.store.language))
           }
-          .onChange((i: number) => { this.activeTab = i })
+          .onChange((i: number) => { telemetry.click(`tab_${i}`, 'geekreader'); this.activeTab = i })
           .barMode(BarMode.Fixed)
           .scrollable(true)
           .layoutWeight(1).width('100%')
         }.width('100%').height('100%')
-      }
-      .navDestination(this.DetailDest)
-      .hideTitleBar(true)
-      .mode(NavigationMode.Stack)
-      .width('100%').height('100%')
     }
     .showSideBar(this.drawerOpen)
     .sideBarPosition(SideBarPosition.Start)
     .sideBarWidth('78%')
     .autoHide(true)
     .showControlButton(false)
-    .onChange((show: boolean) => { this.drawerOpen = show })
+    .onChange((show: boolean) => { this.drawerOpen = show; if (show) this.loadQuota() })
     .width('100%').height('100%')
   }
 }
