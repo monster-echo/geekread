@@ -88,7 +88,7 @@ export struct SplashPage {
     if (this.countdown === -1) {
       // 阶段 loading：logo + appName + tagline + 加载指示 + "加载中…"
       Column({ space: AppSpacing.x3 }) {
-        Image($r('app.media.logo')).width(48).height(48)
+        Image($r('app.media.app_icon')).width(48).height(48).borderRadius(12)
         Text(this.store.config?.brand.appName ?? 'MobileUI')
           .fontSize(28).fontWeight(FontWeight.Bold)
         Text(this.store.config?.brand.tagline ?? '')

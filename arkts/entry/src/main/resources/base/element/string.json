@@ -1,6 +1,12 @@
 {
   "string": [
-    { "name": "app_name", "value": "MobileStarter" },
-    { "name": "module_desc", "value": "MobileStarter reusable application template" }
+    {
+      "name": "app_name",
+      "value": "极客译读"
+    },
+    {
+      "name": "module_desc",
+      "value": "极客译读 · 沉浸式 Hacker News 阅读器"
+    }
   ]
 }

@@ -3,6 +3,8 @@ import { AppStore } from '../state/AppStore'
 import { AppButton, PageHeader } from '../design_system/Components'
 import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { SocialAuthSheet } from './SocialAuthSheet'
+import { loginComponentManager, LoginWithHuaweiIDButton } from '@kit.AccountKit'
+import { BusinessError } from '@kit.BasicServicesKit'
 
 export enum AuthMode {
   SignIn,
@@ -23,6 +25,12 @@ export struct AuthPage {
   @State phoneCodeSent: boolean = false
   @State consentAgreed: boolean = false
   @State socialProvider: string = ''
+  @State isHuaweiLoading: boolean = false
+  private huaweiButtonController: loginComponentManager.LoginWithHuaweiIDButtonController | null = null
+
+  aboutToAppear(): void {
+    this.initHuaweiButton()
+  }
 
   build() {
     Stack() {
@@ -81,6 +89,33 @@ export struct AuthPage {
           Text('其他登录方式')
             .fontSize(12)
             .fontColor(AppColors.textSecondary)
+          if (this.store.authProviders['huawei'] === true) {
+            if (this.huaweiButtonController !== null) {
+              Stack() {
+                LoginWithHuaweiIDButton({
+                  params: {
+                    style: loginComponentManager.Style.BUTTON_RED,
+                    loginType: loginComponentManager.LoginType.QUICK_LOGIN,
+                    borderRadius: 24,
+                    supportDarkMode: true
+                  },
+                  controller: this.huaweiButtonController
+                })
+                  .width('100%')
+                  .height(48)
+                // 未勾选「我已阅读并同意协议」时，覆盖层拦截点击，不拉起华为授权页
+                if (!this.consentAgreed) {
+                  Row()
+                    .width('100%')
+                    .height(48)
+                    .backgroundColor(Color.Transparent)
+                    .onClick(() => this.store.showToast('请先阅读并同意用户协议与隐私政策', true))
+                }
+              }
+              .width('100%')
+              .constraintSize({ maxWidth: 400 })
+            }
+          }
           AuthProviderRow({ store: this.store, onSocial: (provider) => this.beginSocial(provider) })
           Text('忘记密码')
             .fontColor(AppColors.brand)
@@ -131,11 +166,52 @@ export struct AuthPage {
       this.store.navigate(AppRoute.PhoneSignIn)
       return
     }
-    if (provider === 'apple') {
-      this.store.showToast('HarmonyOS 暂不支持 Apple 登录', true)
+    this.socialProvider = provider
+  }
+
+  private initHuaweiButton(): void {
+    this.huaweiButtonController = new loginComponentManager.LoginWithHuaweiIDButtonController()
+      .setAgreementStatus(loginComponentManager.AgreementStatus.ACCEPTED)
+      .onClickLoginWithHuaweiIDButton(
+        (error: BusinessError | undefined, response: loginComponentManager.HuaweiIDCredential | undefined) => {
+          this.onHuaweiButtonResult(error, response)
+        }
+      )
+  }
+
+  private onHuaweiButtonResult(
+    error: BusinessError | undefined,
+    response: loginComponentManager.HuaweiIDCredential | undefined
+  ): void {
+    if (error !== undefined) {
+      // 1001502012/1001502001 = 用户取消/重复授权，静默忽略
+      if (error.code !== 1001502012 && error.code !== 1001502001) {
+        this.store.showToast(`华为登录失败 (${error.code})`, true)
+      }
       return
     }
-    this.socialProvider = provider
+    if (response === undefined) return
+    if (!this.ensureConsent()) return
+    const authCode = response.authorizationCode ?? ''
+    if (authCode.length === 0) {
+      this.store.showToast('未获取到华为授权码', true)
+      return
+    }
+    this.handleHuaweiLogin(authCode)
+  }
+
+  private async handleHuaweiLogin(authCode: string): Promise<void> {
+    if (this.store.busy) return
+    this.isHuaweiLoading = true
+    try {
+      const ok = await this.store.socialSignIn('huawei', '', authCode, '', '')
+      if (ok) {
+        this.store.showToast('登录成功')
+        this.store.completeAuthentication()
+      }
+    } finally {
+      this.isHuaweiLoading = false
+    }
   }
 
   private async submit(): Promise<void> {
@@ -244,27 +320,6 @@ struct AuthProviderRow {
 
   build() {
     Row({ space: AppSpacing.x5 }) {
-      AuthProviderButton({
-        label: 'Apple',
-        icon: $r('app.media.apple'),
-        iconStyle: AuthIconStyle.Monochrome,
-        isEnabled: this.store.authProviders['apple'] === true,
-        onTap: () => this.onSocial('apple')
-      })
-      AuthProviderButton({
-        label: 'Google',
-        icon: $r('app.media.google'),
-        iconStyle: AuthIconStyle.Branded,
-        isEnabled: this.store.authProviders['google'] === true,
-        onTap: () => this.onSocial('google')
-      })
-      AuthProviderButton({
-        label: 'GitHub',
-        icon: $r('app.media.github'),
-        iconStyle: AuthIconStyle.Monochrome,
-        isEnabled: this.store.authProviders['github'] === true,
-        onTap: () => this.onSocial('github')
-      })
       AuthProviderButton({
         label: '手机号',
         icon: $r('app.media.phone'),

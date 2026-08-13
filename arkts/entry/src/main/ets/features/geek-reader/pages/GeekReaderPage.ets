@@ -129,6 +129,20 @@ export struct GeekReaderPage {
   @Builder
   DrawerMenu() {
     Column() {
+      // ── 品牌 logo ──
+      Row({ space: AppSpacing.x2 }) {
+        Image($r('app.media.app_icon'))
+          .width(36).height(36).borderRadius(9)
+        Column({ space: 2 }) {
+          Text(this.store.config?.brand.appName ?? '极客译读')
+            .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+          Text('GeekRead').fontSize(11).fontColor(AppColors.textSecondary)
+        }
+        .alignItems(HorizontalAlign.Start)
+      }
+      .width('100%')
+      .padding({ left: AppSpacing.x5, right: AppSpacing.x5, top: AppSpacing.x5, bottom: AppSpacing.x2 })
+      .alignItems(VerticalAlign.Center)
       Column({ space: AppSpacing.x1 }) {
         Text(this.store.signedIn ? (this.store.user?.displayName ?? appString(AppString.NotLoggedIn, this.store.language)) : appString(AppString.NotLoggedIn, this.store.language))
           .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)

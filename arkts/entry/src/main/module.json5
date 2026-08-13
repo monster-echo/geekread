@@ -8,6 +8,10 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    "metadata": [{
+      "name": "client_id",
+      "value": "6917611067050035924"
+    }],
     "abilities": [{
       "name": "EntryAbility",
       "srcEntry": "./ets/entryability/EntryAbility.ets",
@@ -36,6 +40,8 @@
       "name": "ohos.permission.INTERNET"
     }, {
       "name": "ohos.permission.VIBRATE"
+    }, {
+      "name": "ohos.permission.GET_NETWORK_INFO"
     }]
   }
 }

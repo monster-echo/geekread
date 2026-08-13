@@ -82,16 +82,16 @@
       "dynamic": false,
       "maskedByOverrideDependencyMap": false
     },
-    "libark_interop_api_prism.so@file:oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/ark_interop_api_prism": {
-      "storePath": "oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/ark_interop_api_prism",
+    "libark_interop_loader.so@file:oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/loader": {
+      "storePath": "oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/loader",
       "dependencies": {},
       "dynamicDependencies": {},
       "dev": false,
       "dynamic": false,
       "maskedByOverrideDependencyMap": false
     },
-    "libark_interop_loader.so@file:oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/loader": {
-      "storePath": "oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/loader",
+    "libark_interop_api_prism.so@file:oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/ark_interop_api_prism": {
+      "storePath": "oh_modules/.ohpm/@cangjie-tpc+prism_hybrid@1.2.6/oh_modules/@cangjie-tpc/prism_hybrid/src/main/cangjie/ark_interop_api_prism",
       "dependencies": {},
       "dynamicDependencies": {},
       "dev": false,
