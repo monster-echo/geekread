@@ -91,6 +91,23 @@ export async function translateBatch(req: TranslateRequest): Promise<TranslateRe
   return JSON.parse(text) as TranslateResponse
 }
 
+export interface SummarizeRequest {
+  title: string
+  text?: string
+  comments: string[]
+  targetLanguage: TargetLanguage
+}
+
+export interface SummarizeResponse {
+  summary: string
+}
+
+export async function summarizeStory(req: SummarizeRequest): Promise<string> {
+  const text = await send(`/api/reader/summarize`, http.RequestMethod.POST, JSON.stringify(req))
+  const res = JSON.parse(text) as SummarizeResponse
+  return res.summary
+}
+
 export async function fetchStoriesResolved(ids: number[]): Promise<Story[]> {
   const res = await fetchItems(ids)
   const out: Story[] = []
