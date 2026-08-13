@@ -2,12 +2,13 @@ import common from '@ohos.app.ability.common'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
 import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
-import { fetchItems, summarizeStory } from '../data/GeekReaderApiClient'
+import { fetchItems, fetchStoryTree, summarizeStory } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
 import { buildCommentTree, CommentNode, FlatComment, flattenTree } from '../application/Comments'
-import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
+import { htmlToText, ImmersiveTranslation } from '../components/ImmersiveTranslation'
 import { savePixelMapToCache, shareImage } from '../../../media/ShareImage'
 import { deriveTargetLanguage } from '../application/Locale'
+import { translate } from '../application/TranslationCache'
 
 function timeAgo(unix: number): string {
   const now = Math.floor(Date.now() / 1000)
@@ -79,31 +80,52 @@ export struct StoryDetailPage {
     }
   }
 
-  /** 异步拉取评论树（不阻塞正文显示）。 */
+  /** 异步拉取评论树（不阻塞正文显示）。优先整树接口（后端并发解析），失败回退逐层。 */
   private async loadComments(s: Story, id: number): Promise<void> {
     this.commentsLoading = true
     try {
-      const all: Comment[] = []
-      const seen: Set<number> = new Set<number>()
-      let frontier: number[] = s.kids ?? []
-      while (frontier.length > 0 && all.length < 200) {
-        const res = await fetchItems(frontier)
-        frontier = []
-        for (let i = 0; i < res.items.length; i++) {
-          const cm = toComment(res.items[i])
-          if (cm === null || seen.has(cm.id)) continue
-          seen.add(cm.id)
-          all.push(cm)
-          for (let k = 0; k < cm.kids.length; k++) frontier.push(cm.kids[k])
-        }
+      try {
+        await this.loadTreeFast(id)
+      } catch (e) {
+        await this.loadTreeBfs(s, id)
       }
-      this.tree = buildCommentTree(all, s.id)
       this.prepareCard()
     } catch {
       // 评论加载失败不影响正文展示
     } finally {
       this.commentsLoading = false
     }
+  }
+
+  /** 整树一次拉取（服务端并发，快）。 */
+  private async loadTreeFast(id: number): Promise<void> {
+    const res = await fetchStoryTree(id)
+    const all: Comment[] = []
+    for (let i = 0; i < res.items.length; i++) {
+      const cm = toComment(res.items[i])
+      if (cm !== null) all.push(cm)
+    }
+    const story = this.story
+    if (story !== null) this.tree = buildCommentTree(all, story.id)
+  }
+
+  /** 逐层 BFS 拉取（回退路径）。 */
+  private async loadTreeBfs(s: Story, id: number): Promise<void> {
+    const all: Comment[] = []
+    const seen: Set<number> = new Set<number>()
+    let frontier: number[] = s.kids ?? []
+    while (frontier.length > 0 && all.length < 200) {
+      const res = await fetchItems(frontier)
+      frontier = []
+      for (let i = 0; i < res.items.length; i++) {
+        const cm = toComment(res.items[i])
+        if (cm === null || seen.has(cm.id)) continue
+        seen.add(cm.id)
+        all.push(cm)
+        for (let k = 0; k < cm.kids.length; k++) frontier.push(cm.kids[k])
+      }
+    }
+    this.tree = buildCommentTree(all, s.id)
   }
 
   private toggle(id: number): void {
@@ -137,7 +159,8 @@ export struct StoryDetailPage {
     const out: CardComment[] = []
     for (let i = 0; i < candidates.length && i < 2; i++) {
       const c = candidates[i]
-      const text = c.text.length > 80 ? c.text.slice(0, 80) + '…' : c.text
+      const clean = htmlToText(c.text)
+      const text = clean.length > 80 ? clean.slice(0, 80) + '…' : clean
       out.push({ by: c.by, text: text })
     }
     return out
@@ -194,19 +217,38 @@ export struct StoryDetailPage {
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 评论加载完成后生成精选评论 + LLM 摘要（后端按 storyId 缓存，命中秒出）。 */
+  /** 评论加载完成后生成精选评论（清洗 HTML + 翻译）+ LLM 摘要（后端按 storyId 缓存）。 */
   private async prepareCard(): Promise<void> {
     if (this.story === null) return
+    const lang = deriveTargetLanguage(this.store.language) // null = 英文用户，无需翻译
+
+    // 精选评论：HTML → 干净文本（英文原文，供摘要与翻译用）
     this.topComments = this.pickTopComments()
-    const lang = deriveTargetLanguage(this.store.language)
-    if (lang === null) return
+    const enComments: string[] = this.topComments.map((c: CardComment) => c.text)
+
+    // 翻译精选评论（非英文用户），失败保留原文
+    if (lang !== null) {
+      const translated: CardComment[] = []
+      for (let i = 0; i < this.topComments.length; i++) {
+        const c = this.topComments[i]
+        try {
+          const t = await translate(c.text, lang, true)
+          translated.push({ by: c.by, text: t.length > 0 ? t : c.text })
+        } catch (e) {
+          translated.push(c)
+        }
+      }
+      this.topComments = translated
+    }
+
+    // LLM 摘要：英文评论给模型，输出目标语言摘要（lang 为 null 时用英文）
     try {
       this.summary = await summarizeStory({
         storyId: this.story.id,
         title: this.story.title,
         text: this.story.text,
-        comments: this.topComments.map((c: CardComment) => c.text),
-        targetLanguage: lang,
+        comments: enComments,
+        targetLanguage: lang ?? 'en',
       })
     } catch (e) {
       this.summary = ''

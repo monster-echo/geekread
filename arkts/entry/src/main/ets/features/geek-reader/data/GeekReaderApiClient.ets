@@ -86,12 +86,19 @@ export async function fetchItems(ids: number[]): Promise<ItemsResponse> {
   return JSON.parse(text) as ItemsResponse
 }
 
+/** 服务端一次解析整棵评论树（并发拉取，避免前端逐层往返）。 */
+export async function fetchStoryTree(storyId: number): Promise<ItemsResponse> {
+  const text = await send(`/api/reader/tree`, http.RequestMethod.POST, JSON.stringify({ storyId }))
+  return JSON.parse(text) as ItemsResponse
+}
+
 export async function translateBatch(req: TranslateRequest): Promise<TranslateResponse> {
   const text = await send(`/api/translate`, http.RequestMethod.POST, JSON.stringify(req))
   return JSON.parse(text) as TranslateResponse
 }
 
 export interface SummarizeRequest {
+  storyId: number
   title: string
   text?: string
   comments: string[]
@@ -100,6 +107,7 @@ export interface SummarizeRequest {
 
 export interface SummarizeResponse {
   summary: string
+  cached?: boolean
 }
 
 export async function summarizeStory(req: SummarizeRequest): Promise<string> {
