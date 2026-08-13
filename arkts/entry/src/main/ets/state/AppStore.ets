@@ -511,11 +511,11 @@ export class AppStore {
     }
   }
 
-  async updateProfile(username: string, displayName: string, bio: string, avatarUrl: string): Promise<boolean> {
+  async updateProfile(displayName: string, bio: string, avatarUrl: string): Promise<boolean> {
     if (!this.signedIn || this.busy) return false
     this.busy = true
     try {
-      this.user = await apiClient.updateProfile(username, displayName, bio, avatarUrl)
+      this.user = await apiClient.updateProfile(displayName, bio, avatarUrl)
       this.showToast('个人资料已同步到服务端')
       return true
     } catch (error) {
@@ -582,6 +582,7 @@ export class AppStore {
   }
 
   async purchase(planId: string): Promise<boolean> {
+    console.log(`[geekread][purchase] planId=${planId} pending=${this.pendingPlanId}`)
     this.purchaseStatus = PurchaseStatus.Loading
     this.purchaseOrder = null
     this.purchaseMessage = ''
@@ -609,14 +610,17 @@ export class AppStore {
     } catch (error) {
       if (error instanceof ApiFailure && error.status === 401) {
         this.purchaseStatus = PurchaseStatus.Unauthorized
+        this.purchaseMessage = '请先登录'
       } else if (error instanceof ApiFailure) {
         // server returned an error envelope (non-2xx)
         this.purchaseStatus = PurchaseStatus.Error
         this.purchaseMessage = error.message
       } else {
-        // non-ApiFailure = transport/network failure (timeout/DNS) → offline
+        // non-ApiFailure = transport/network failure or IAP error → 显示原因
         this.purchaseStatus = PurchaseStatus.Offline
+        this.purchaseMessage = error instanceof Error ? error.message : '购买失败'
       }
+      this.showToast(this.purchaseMessage, true)
       return false
     }
   }
@@ -630,13 +634,12 @@ export class AppStore {
     const ui = this.uiContext
     if (ui === null) return
     try {
-      // 原生 toast，顶部对齐（offset 单位 px，避开状态栏）；error 时文字用红色调区分
+      // 原生 toast：顶部对齐（offset 单位 px，避开状态栏），文字色由系统按深浅色自动适配
       ui.getPromptAction().showToast({
         message,
         duration: 2400,
         alignment: Alignment.Top,
         offset: { dx: 0, dy: 120 },
-        textColor: error ? '#FFB4A2' : '#FFFFFF',
       })
     } catch (e) {
       // 启动早期 UI 未就绪时静默降级，不影响主流程

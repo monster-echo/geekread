@@ -92,6 +92,11 @@ export async function fetchStoryTree(storyId: number): Promise<ItemsResponse> {
   return JSON.parse(text) as ItemsResponse
 }
 
+/** 内容举报（评论违规反馈）。 */
+export async function reportComment(storyId: number, commentId: number, reason: string, text?: string): Promise<void> {
+  await send(`/api/reader/report`, http.RequestMethod.POST, JSON.stringify({ storyId, commentId, reason, text }))
+}
+
 export async function translateBatch(req: TranslateRequest): Promise<TranslateResponse> {
   const text = await send(`/api/translate`, http.RequestMethod.POST, JSON.stringify(req))
   return JSON.parse(text) as TranslateResponse

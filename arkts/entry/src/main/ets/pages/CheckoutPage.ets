@@ -78,12 +78,12 @@ export struct CheckoutPage {
           } else if (this.store.purchaseStatus === PurchaseStatus.Failed) {
             AppButton({
               label: '重试',
-              onTap: () => { this.store.purchase(this.planId) }
+              onTap: () => { this.store.purchase(this.store.pendingPlanId) }
             })
           } else {
             AppButton({
               label: '确认订阅',
-              onTap: () => { this.store.purchase(this.planId) }
+              onTap: () => { this.store.purchase(this.store.pendingPlanId) }
             })
           }
         }
@@ -91,12 +91,9 @@ export struct CheckoutPage {
         .width('100%')
       }
       .layoutWeight(1)
+      .align(Alignment.TopStart)
     }
     .width('100%')
     .height('100%')
-  }
-
-  private get planId(): string {
-    return this.store.pendingPlanId
   }
 }

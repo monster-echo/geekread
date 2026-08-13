@@ -2,7 +2,7 @@ import common from '@ohos.app.ability.common'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
-import { fetchItems, fetchStoryTree, summarizeStory } from '../data/GeekReaderApiClient'
+import { fetchItems, fetchStoryTree, reportComment, summarizeStory } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
 import { buildCommentTree, CommentNode, FlatComment, flattenTree } from '../application/Comments'
 import { htmlToText, ImmersiveTranslation } from '../components/ImmersiveTranslation'
@@ -22,6 +22,10 @@ function timeAgo(unix: number): string {
 interface CardComment {
   by: string
   text: string
+}
+
+interface DialogIndex {
+  index: number
 }
 
 @Component
@@ -137,6 +141,28 @@ export struct StoryDetailPage {
     }
     if (!found) next.push(id)
     this.collapsed = next
+  }
+
+  /** 长按评论 → 举报弹窗（内容合规反馈入口）。 */
+  private promptReport(fc: FlatComment): void {
+    const reasons = ['spam', 'illegal', 'false_info']
+    const labels = ['垃圾广告', '违法违规', '不实信息']
+    this.getUIContext().getPromptAction().showDialog({
+      title: '举报该评论',
+      message: '内容由社区用户发布并经 AI 翻译，如发现违规可举报。',
+      buttons: [
+        { text: '取消', color: '#667085' },
+        { text: '垃圾广告', color: '#D24B4B' },
+        { text: '违法违规', color: '#D24B4B' },
+        { text: '不实信息', color: '#D24B4B' },
+      ],
+    }).then((result: DialogIndex) => {
+      const reason = reasons[result.index - 1]
+      if (reason === undefined) return
+      reportComment(this.story?.id ?? 0, fc.node.id, reason)
+        .then(() => this.store.showToast('已提交举报，感谢反馈'))
+        .catch(() => this.store.showToast('举报提交失败', true))
+    }).catch(() => { /* 用户取消 */ })
   }
 
   /** 用系统浏览器打开外部链接（阅读原文）。 */
@@ -333,6 +359,7 @@ export struct StoryDetailPage {
                 .alignItems(HorizontalAlign.Start)
                 .padding({ left: fc.depth * 12, top: AppSpacing.x2, bottom: AppSpacing.x2 })
                 .border({ width: { left: fc.depth > 0 ? 1 : 0 }, color: AppColors.border })
+                .gesture(LongPressGesture().onAction(() => this.promptReport(fc)))  // 长按评论 → 举报
               }, (fc: FlatComment) => `${fc.node.id}`)
             }
             .padding(AppSpacing.x4)

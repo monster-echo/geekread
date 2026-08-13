@@ -19,7 +19,7 @@ function production(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-async function redis(): Promise<RedisClientType | undefined> {
+export async function redis(): Promise<RedisClientType | undefined> {
   const url = process.env.REDIS_URL?.trim();
   if (!url) {
     if (production()) throw new Error('redis_not_configured');
