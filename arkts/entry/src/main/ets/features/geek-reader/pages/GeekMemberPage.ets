@@ -100,6 +100,7 @@ export struct GeekMemberPage {
   }
 
   private buy(plan: BillingPlan): void {
+    this.store.startCheckout(plan.id)
     this.store.navigateByName('membership.checkout')
   }
 }

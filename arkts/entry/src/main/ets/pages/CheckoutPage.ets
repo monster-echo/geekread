@@ -13,6 +13,17 @@ import { formatPlanPrice } from './ProfilePages'
 @Component
 export struct CheckoutPage {
   @ObjectLink store: AppStore
+  @State plan: BillingPlan | null = null
+
+  aboutToAppear(): void {
+    // 进页时按 pendingPlanId 定一次方案，避免渲染期多次求值 getter 不稳定
+    const pid = this.store.pendingPlanId
+    const plans = this.store.config?.plans ?? []
+    for (let i = 0; i < plans.length; i++) {
+      if (plans[i].id === pid) { this.plan = plans[i]; return }
+    }
+    this.plan = null
+  }
 
   build() {
     Column() {
@@ -87,13 +98,5 @@ export struct CheckoutPage {
 
   private get planId(): string {
     return this.store.pendingPlanId
-  }
-
-  private get plan(): BillingPlan | null {
-    const plans = this.store.config?.plans ?? []
-    for (const plan of plans) {
-      if (plan.id === this.planId) return plan
-    }
-    return null
   }
 }
