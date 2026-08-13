@@ -629,14 +629,18 @@ export class AppStore {
   showToast(message: string, error: boolean = false): void {
     const ui = this.uiContext
     if (ui === null) return
-    // 原生 toast，顶部对齐（offset 单位 px，避开状态栏）；error 时文字用红色调区分
-    ui.getPromptAction().showToast({
-      message,
-      duration: 2400,
-      alignment: Alignment.Top,
-      offset: { dx: 0, dy: 120 },
-      textColor: error ? '#FFB4A2' : '#FFFFFF',
-    })
+    try {
+      // 原生 toast，顶部对齐（offset 单位 px，避开状态栏）；error 时文字用红色调区分
+      ui.getPromptAction().showToast({
+        message,
+        duration: 2400,
+        alignment: Alignment.Top,
+        offset: { dx: 0, dy: 120 },
+        textColor: error ? '#FFB4A2' : '#FFFFFF',
+      })
+    } catch (e) {
+      // 启动早期 UI 未就绪时静默降级，不影响主流程
+    }
   }
 
   private async authenticate(

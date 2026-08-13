@@ -1,7 +1,7 @@
 import common from '@ohos.app.ability.common'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
-import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
+import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { fetchItems, fetchStoryTree, summarizeStory } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
 import { buildCommentTree, CommentNode, FlatComment, flattenTree } from '../application/Comments'
@@ -307,16 +307,9 @@ export struct StoryDetailPage {
               Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
 
-              // AI 摘要：正文与评论之间展示（有摘要或精选评论时才显示）
+              // AI 摘要：正文与评论之间展示（有摘要或精选评论时才显示），与正文/评论同风格无背景
               if (this.summary.length > 0 || this.topComments.length > 0) {
-                Column({ space: AppSpacing.x4 }) {
-                  this.cardContent(false)
-                }
-                .width('100%')
-                .padding(AppSpacing.x4)
-                .backgroundColor(AppColors.surface)
-                .borderRadius(AppRadii.card)
-                .alignItems(HorizontalAlign.Start)
+                this.cardContent(false)
               }
 
               // 评论异步加载期间、且还没有任何评论渲染出来时，显示一个小号转圈

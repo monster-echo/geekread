@@ -91,17 +91,21 @@ export struct ImmersiveTranslation {
 
   aboutToAppear(): void {
     // 深色模式适配：库默认文字色写死暗色，用 $r 资源（base/dark 自动切换）覆盖
-    this.mdController
-      .setTextColor(AppColors.text)
-      .setTitleColor(AppColors.text)
-      .setQuoteTextColor(AppColors.textSecondary)
-      .setQuoteBorderColor(AppColors.brand)
-      .setQuoteBackgroundColor(AppColors.surfaceMuted)
-      .setHyperlinkTextColor(AppColors.brand)
-      .setInlineCodeColor(AppColors.text)
-      .setInlineCodeBackgroundColor(AppColors.surfaceMuted)
-      .setUlPointColor(AppColors.text)
-      .setLineColor(AppColors.border)
+    try {
+      this.mdController
+        .setTextColor(AppColors.text)
+        .setTitleColor(AppColors.text)
+        .setQuoteTextColor(AppColors.textSecondary)
+        .setQuoteBorderColor(AppColors.brand)
+        .setQuoteBackgroundColor(AppColors.surfaceMuted)
+        .setHyperlinkTextColor(AppColors.brand)
+        .setInlineCodeColor(AppColors.text)
+        .setInlineCodeBackgroundColor(AppColors.surfaceMuted)
+        .setUlPointColor(AppColors.text)
+        .setLineColor(AppColors.border)
+    } catch (e) {
+      // 库未就绪时静默降级（富文本用默认样式）
+    }
     // 需要译文（translation / both）时自动触发，不点击。
     if (this.displayMode !== 'original' && this.lang !== null && this.result.length === 0) {
       this.doTranslate()
