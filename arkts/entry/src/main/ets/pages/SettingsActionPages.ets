@@ -1,4 +1,5 @@
 import common from '@ohos.app.ability.common'
+import { bundleManager } from '@kit.AbilityKit'
 import { AppRoute } from '../navigation/AppRoute'
 import { AppStore } from '../state/AppStore'
 import { AppButton, AppListRow, PageHeader } from '../design_system/Components'
@@ -77,6 +78,7 @@ struct PasswordInput {
   build() {
     TextInput({ placeholder: this.label, text: this.value })
       .height(52).type(InputType.Password).backgroundColor(AppColors.surface)
+      .border({ width: 1, color: AppColors.borderStrong })
       .borderRadius(AppRadii.control).onChange(this.changed)
   }
 }
@@ -275,13 +277,26 @@ export struct LegalDocumentPage {
 @Component
 export struct AboutPage {
   @ObjectLink store: AppStore
+  @State version: string = ''
+
+  aboutToAppear(): void {
+    // 从系统读真实版本（versionName + versionCode），与上架版本一致
+    bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT)
+      .then((info: bundleManager.BundleInfo) => {
+        this.version = `${info.versionName} (${info.versionCode})`
+      })
+      .catch((e: object) => {
+        this.version = '未知'
+      })
+  }
+
   build() {
     Column() {
       PageHeader({ store: this.store, title: '关于与版本' })
       Column() {
         AppListRow({ store: this.store, label: '产品',
           value: this.store.config?.brand.appName ?? 'MobileUI' })
-        AppListRow({ store: this.store, label: '客户端版本', value: '1.0.0 (1)' })
+        AppListRow({ store: this.store, label: '客户端版本', value: this.version })
         AppListRow({ store: this.store, label: '配置版本',
           value: `v${this.store.config?.version ?? 0}` })
         AppListRow({ store: this.store, label: '服务状态',
@@ -326,22 +341,23 @@ export struct ProfileEditPage {
           }
           AppButton({ label: appString(AppString.ChooseAvatar, this.store.language),
             icon: AppIconName.User, onTap: () => this.pickAvatar() })
-          TextInput({ placeholder: '用户名（2-24 字符）',
-            text: this.username })
-            .height(52).maxLength(24).backgroundColor(AppColors.surface)
-            .borderRadius(AppRadii.control).onChange(value => this.username = value)
+          Text(this.username)
+            .fontSize(16).fontColor(AppColors.textSecondary)
+            .height(52).width('100%').textAlign(TextAlign.Start)
           TextInput({ placeholder: appString(AppString.DisplayName, this.store.language),
             text: this.displayName })
             .height(52).maxLength(40).backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control).onChange(value => this.displayName = value)
           TextInput({ placeholder: appString(AppString.Bio, this.store.language), text: this.bio })
             .height(96).maxLength(160).backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control).onChange(value => this.bio = value)
           AppButton({ label: this.store.busy
             ? appString(AppString.Saving, this.store.language)
             : appString(AppString.SaveProfile, this.store.language),
             icon: AppIconName.Check,
-            onTap: () => this.store.updateProfile(this.username, this.displayName, this.bio, this.avatarUrl) })
+            onTap: () => this.store.updateProfile(this.displayName, this.bio, this.avatarUrl) })
         }
         .padding(AppSpacing.x4)
         .width('100%')
