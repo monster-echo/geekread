@@ -1,12 +1,13 @@
 import common from '@ohos.app.ability.common'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
-import { AppColors, AppSpacing } from '../../../theme/AppTokens'
-import { fetchItems } from '../data/GeekReaderApiClient'
+import { AppColors, AppRadii, AppSpacing } from '../../../theme/AppTokens'
+import { fetchItems, summarizeStory } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
 import { buildCommentTree, CommentNode, FlatComment, flattenTree } from '../application/Comments'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 import { savePixelMapToCache, shareImage } from '../../../media/ShareImage'
+import { deriveTargetLanguage } from '../application/Locale'
 
 function timeAgo(unix: number): string {
   const now = Math.floor(Date.now() / 1000)
@@ -17,6 +18,11 @@ function timeAgo(unix: number): string {
   return `${Math.floor(d / 86400)}d`
 }
 
+interface CardComment {
+  by: string
+  text: string
+}
+
 @Component
 export struct StoryDetailPage {
   @ObjectLink store: AppStore
@@ -25,6 +31,9 @@ export struct StoryDetailPage {
   @State collapsed: number[] = []
   @State loading: boolean = true
   @State commentsLoading: boolean = false
+  @State summary: string = ''
+  @State topComments: CardComment[] = []
+  @State refreshing: boolean = false
 
   aboutToAppear(): void {
     this.load()
@@ -49,6 +58,27 @@ export struct StoryDetailPage {
     }
   }
 
+  /** 下拉刷新：重拉文章 + 评论树 + 精华卡片。 */
+  private async refresh(): Promise<void> {
+    const id = this.store.geekReaderStoryId
+    if (id <= 0) { this.refreshing = false; return }
+    try {
+      const top = await fetchItems([id])
+      const s = toStory(top.items[0] ?? null)
+      this.story = s
+      this.store.detailTitle = s?.title ?? ''
+      if (s !== null) {
+        this.tree = []
+        await this.loadComments(s, id)
+        await this.prepareCard()
+      }
+    } catch (e) {
+      // 刷新失败保留原内容
+    } finally {
+      this.refreshing = false
+    }
+  }
+
   /** 异步拉取评论树（不阻塞正文显示）。 */
   private async loadComments(s: Story, id: number): Promise<void> {
     this.commentsLoading = true
@@ -68,6 +98,7 @@ export struct StoryDetailPage {
         }
       }
       this.tree = buildCommentTree(all, s.id)
+      this.prepareCard()
     } catch {
       // 评论加载失败不影响正文展示
     } finally {
@@ -93,17 +124,66 @@ export struct StoryDetailPage {
     ctx.openLink(url)
   }
 
-  /** 分享卡片：离屏构建 → 截图 → 打包保存 → 系统分享。 */
+  /** 选精选评论：按回复数降序取前 2 条（排除删除/空评论）。 */
+  private pickTopComments(): CardComment[] {
+    const candidates: CommentNode[] = []
+    for (let i = 0; i < this.tree.length; i++) {
+      const n = this.tree[i]
+      if (n.deleted || n.dead) continue
+      if (n.text.trim().length === 0) continue
+      candidates.push(n)
+    }
+    candidates.sort((a: CommentNode, b: CommentNode) => b.replies.length - a.replies.length)
+    const out: CardComment[] = []
+    for (let i = 0; i < candidates.length && i < 2; i++) {
+      const c = candidates[i]
+      const text = c.text.length > 80 ? c.text.slice(0, 80) + '…' : c.text
+      out.push({ by: c.by, text: text })
+    }
+    return out
+  }
+
+  /** 卡片内容：装饰条 + 标题 + 作者 + 摘要 + 精选评论（页面内与分享共用）。 */
   @Builder
-  shareCardBuilder() {
+  cardContent() {
     Column({ space: AppSpacing.x4 }) {
+      Row().width('100%').height(6).backgroundColor(AppColors.brand).borderRadius(3)
       Text(this.story?.title ?? '')
         .fontSize(28).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
         .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
       Text(`${this.story?.by ?? ''} · ${this.story?.score ?? 0} 分 · ${timeAgo(this.story?.time ?? 0)}`)
-        .fontSize(16).fontColor(AppColors.textSecondary)
+        .fontSize(14).fontColor(AppColors.textSecondary)
         .width('100%')
+      if (this.summary.length > 0) {
+        Text(this.summary)
+          .fontSize(18).fontColor(AppColors.text).lineHeight(26)
+          .width('100%')
+          .padding({ left: AppSpacing.x4 })
+          .border({ width: { left: 3 }, color: AppColors.brand })
+      }
+      if (this.topComments.length > 0) {
+        Divider().color(AppColors.border)
+        ForEach(this.topComments, (c: CardComment, index: number) => {
+          Column({ space: AppSpacing.x1 }) {
+            Text(c.by).fontSize(12).fontColor(AppColors.brand)
+            Text(c.text).fontSize(14).fontColor(AppColors.textSecondary)
+              .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .width('100%')
+        }, (c: CardComment, index: number) => `${index}-${c.by}`)
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 分享卡片：固定 600×800 截图用（cardContent + 底部水印）。 */
+  @Builder
+  shareCardBuilder() {
+    Column() {
+      this.cardContent()
       Blank()
       Text('极客译读')
         .fontSize(20).fontWeight(FontWeight.Bold).fontColor(AppColors.brand)
@@ -112,6 +192,25 @@ export struct StoryDetailPage {
     .padding(AppSpacing.x6)
     .backgroundColor(AppColors.surface)
     .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 评论加载完成后生成精选评论 + LLM 摘要（后端按 storyId 缓存，命中秒出）。 */
+  private async prepareCard(): Promise<void> {
+    if (this.story === null) return
+    this.topComments = this.pickTopComments()
+    const lang = deriveTargetLanguage(this.store.language)
+    if (lang === null) return
+    try {
+      this.summary = await summarizeStory({
+        storyId: this.story.id,
+        title: this.story.title,
+        text: this.story.text,
+        comments: this.topComments.map((c: CardComment) => c.text),
+        targetLanguage: lang,
+      })
+    } catch (e) {
+      this.summary = ''
+    }
   }
 
   private async share(): Promise<void> {
@@ -147,7 +246,8 @@ export struct StoryDetailPage {
             .justifyContent(FlexAlign.Center).layoutWeight(1).width('100%')
         }
         else {
-          Scroll() {
+          Refresh({ refreshing: $$this.refreshing }) {
+            Scroll() {
             Column({ space: AppSpacing.x3 }) {
               ImmersiveTranslation({ text: this.story.title, locale: this.store.language, displayMode: this.store.translationDisplayMode, free: true, rich: false })
               Row({ space: AppSpacing.x4 }) {
@@ -165,6 +265,20 @@ export struct StoryDetailPage {
               }
               Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
+
+              // 精华卡片：正文与评论之间展示（有摘要或精选评论时才显示）
+              if (this.summary.length > 0 || this.topComments.length > 0) {
+                Column({ space: AppSpacing.x4 }) {
+                  this.cardContent()
+                  Text('极客译读')
+                    .fontSize(16).fontWeight(FontWeight.Bold).fontColor(AppColors.brand)
+                }
+                .width('100%')
+                .padding(AppSpacing.x4)
+                .backgroundColor(AppColors.surface)
+                .borderRadius(AppRadii.card)
+                .alignItems(HorizontalAlign.Start)
+              }
 
               // 评论异步加载期间、且还没有任何评论渲染出来时，显示一个小号转圈
               if (this.commentsLoading && this.buildFlat().length === 0) {
@@ -193,10 +307,13 @@ export struct StoryDetailPage {
             .alignItems(HorizontalAlign.Start)
             .align(Alignment.TopStart)
           }
-          // Scroll 的 align 默认是 Alignment.Center，内容矮于视口时会被居中；
-          // 显式设为 TopStart，让内容从顶部开始排列
-          .width('100%')
-          .align(Alignment.TopStart)
+            // Scroll 的 align 默认是 Alignment.Center，内容矮于视口时会被居中；
+            // 显式设为 TopStart，让内容从顶部开始排列
+            .width('100%')
+            .align(Alignment.TopStart)
+            .layoutWeight(1)
+          }
+          .onRefreshing(() => this.refresh())
           .layoutWeight(1)
         }
     }.width('100%').height('100%')
