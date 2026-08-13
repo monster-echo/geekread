@@ -9,6 +9,7 @@ type Reservation = {
 
 const localUsage = new Map<string, number>();
 const localTranslationCache = new Map<string, string>();
+const localSummaryCache = new Map<string, string>();
 const localJsonCache = new Map<string, { freshUntil: number; expiresAt: number; value: unknown }>();
 const reservationLocks = new Map<string, Promise<void>>();
 let redisClient: RedisClientType | undefined;
@@ -97,6 +98,48 @@ export async function cacheTranslation(
   }
   const ttlSeconds = Number(process.env.TRANSLATION_CACHE_TTL_SECONDS ?? 2_592_000);
   await client.set(key, value, { EX: ttlSeconds });
+}
+
+function summaryCacheKey(storyId: number, targetLanguage: string): string {
+  const version = process.env.TRANSLATION_CACHE_VERSION?.trim() || 'v1';
+  const model = process.env.MODEL_NAME?.trim() || 'unknown-model';
+  const digest = createHash('sha256')
+    .update(version)
+    .update('\0')
+    .update(model)
+    .update('\0')
+    .update(targetLanguage)
+    .update('\0')
+    .update(String(storyId))
+    .digest('hex');
+  return `geekread:summary-cache:${digest}`;
+}
+
+export async function getCachedSummary(
+  storyId: number,
+  targetLanguage: string,
+): Promise<string | undefined> {
+  const key = summaryCacheKey(storyId, targetLanguage);
+  const client = await redis();
+  const value = client ? await client.get(key) : localSummaryCache.get(key);
+  return value?.trim() || undefined;
+}
+
+export async function cacheSummary(
+  storyId: number,
+  targetLanguage: string,
+  summary: string,
+): Promise<void> {
+  const key = summaryCacheKey(storyId, targetLanguage);
+  const value = summary.trim();
+  if (!value) return;
+  const client = await redis();
+  if (!client) {
+    localSummaryCache.set(key, value);
+    return;
+  }
+  // 永久缓存：同一 storyId + 语言只生成一次，不设 TTL。
+  await client.set(key, value);
 }
 
 export async function getJsonCache<T>(

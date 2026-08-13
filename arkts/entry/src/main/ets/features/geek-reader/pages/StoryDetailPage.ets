@@ -166,31 +166,29 @@ export struct StoryDetailPage {
     return out
   }
 
-  /** 卡片内容：装饰条 + 标题 + 作者 + 摘要 + 精选评论（页面内与分享共用）。 */
+  /** AI 摘要：标题 + 作者 + 摘要 + 精选评论（large=false 页面内小字号，true 分享截图大字号）。 */
   @Builder
-  cardContent() {
+  cardContent(large: boolean) {
     Column({ space: AppSpacing.x4 }) {
-      Row().width('100%').height(6).backgroundColor(AppColors.brand).borderRadius(3)
       Text(this.story?.title ?? '')
-        .fontSize(28).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+        .fontSize(large ? 28 : 15).fontWeight(large ? FontWeight.Bold : FontWeight.Normal).fontColor(AppColors.text)
         .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
       Text(`${this.story?.by ?? ''} · ${this.story?.score ?? 0} 分 · ${timeAgo(this.story?.time ?? 0)}`)
-        .fontSize(14).fontColor(AppColors.textSecondary)
+        .fontSize(large ? 14 : 12).fontColor(AppColors.textSecondary)
         .width('100%')
       if (this.summary.length > 0) {
+        Divider().color(AppColors.border)
         Text(this.summary)
-          .fontSize(18).fontColor(AppColors.text).lineHeight(26)
+          .fontSize(large ? 18 : 15).fontColor(AppColors.text).lineHeight(large ? 26 : 22)
           .width('100%')
-          .padding({ left: AppSpacing.x4 })
-          .border({ width: { left: 3 }, color: AppColors.brand })
       }
       if (this.topComments.length > 0) {
         Divider().color(AppColors.border)
         ForEach(this.topComments, (c: CardComment, index: number) => {
           Column({ space: AppSpacing.x1 }) {
             Text(c.by).fontSize(12).fontColor(AppColors.brand)
-            Text(c.text).fontSize(14).fontColor(AppColors.textSecondary)
+            Text(c.text).fontSize(large ? 14 : 15).fontColor(AppColors.textSecondary)
               .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
           }
           .alignItems(HorizontalAlign.Start)
@@ -202,11 +200,12 @@ export struct StoryDetailPage {
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 分享卡片：固定 600×800 截图用（cardContent + 底部水印）。 */
+  /** 分享卡片：固定 600×800 截图用（装饰条 + 大字号内容 + 底部水印）。 */
   @Builder
   shareCardBuilder() {
     Column() {
-      this.cardContent()
+      Row().width('100%').height(6).backgroundColor(AppColors.brand).borderRadius(3)
+      this.cardContent(true)
       Blank()
       Text('极客译读')
         .fontSize(20).fontWeight(FontWeight.Bold).fontColor(AppColors.brand)
@@ -308,12 +307,10 @@ export struct StoryDetailPage {
               Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
 
-              // 精华卡片：正文与评论之间展示（有摘要或精选评论时才显示）
+              // AI 摘要：正文与评论之间展示（有摘要或精选评论时才显示）
               if (this.summary.length > 0 || this.topComments.length > 0) {
                 Column({ space: AppSpacing.x4 }) {
-                  this.cardContent()
-                  Text('极客译读')
-                    .fontSize(16).fontWeight(FontWeight.Bold).fontColor(AppColors.brand)
+                  this.cardContent(false)
                 }
                 .width('100%')
                 .padding(AppSpacing.x4)

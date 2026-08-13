@@ -59,7 +59,7 @@ function htmlToMarkdown(html: string): string {
 }
 
 /** 把 HTML 转成纯文本（翻译用）：解码实体、去标签、段落换行。 */
-function htmlToText(html: string): string {
+export function htmlToText(html: string): string {
   let s = decodeEntities(html)
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>|<\/pre>|<\/blockquote>|<hr\s*\/?>/gi, '\n')

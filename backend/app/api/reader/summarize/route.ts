@@ -1,5 +1,6 @@
-import { errorResponse, json, requireString, safeErrorStatus } from '../../../lib/http';
-import { summarizeWithModel } from '../../../lib/model';
+import { errorResponse, json, requireString, safeErrorStatus } from '../../../../lib/http';
+import { summarizeWithModel } from '../../../../lib/model';
+import { cacheSummary, getCachedSummary } from '../../../../lib/storage';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
 const MAX_TITLE = 300;
@@ -19,6 +20,10 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const targetLanguage = requireString((payload as { targetLanguage?: unknown }).targetLanguage, 20);
     if (!SUPPORTED.has(targetLanguage)) throw new Error('unsupported_target_language');
+    const storyId = (payload as { storyId?: unknown }).storyId;
+    if (typeof storyId !== 'number' || !Number.isSafeInteger(storyId) || storyId <= 0) {
+      throw new Error('invalid_request');
+    }
     const title = requireString((payload as { title?: unknown }).title, MAX_TITLE);
     const body = (payload as { text?: unknown }).text;
     const bodyText = typeof body === 'string' ? body.slice(0, MAX_BODY) : '';
@@ -26,7 +31,11 @@ export async function POST(request: Request): Promise<Response> {
     if (!Array.isArray(rawComments) || rawComments.length > MAX_COMMENTS) throw new Error('invalid_request');
     const comments: string[] = rawComments.map((v) => requireString(v, MAX_COMMENT));
 
+    const cached = await getCachedSummary(storyId, targetLanguage);
+    if (cached) return json({ summary: cached, cached: true });
+
     const summary = await summarizeWithModel(title, bodyText, comments, targetLanguage);
+    await cacheSummary(storyId, targetLanguage, summary);
     return json({ summary });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';
