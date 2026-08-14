@@ -51,17 +51,19 @@ async function flush(): Promise<void> {
   if (batch.length === 0) return
   let lang: TargetLanguage = batch[0].lang
   if (!lang) lang = 'zh-Hans' // 兜底：lang 丢失时用简体中文
-  for (let start = 0; start < batch.length; start += MAX_ENTRIES) {
-    const end: number = Math.min(start + MAX_ENTRIES, batch.length)
+  // 切成 ≤MAX_ENTRIES 的块后并行请求（后端 4 并发 worker），
+  // 避免 200 条评论 ~10 块串行等待（串行总耗时 ≈ 块数 × 单次 LLM 延迟）。
+  const chunks: Pending[][] = chunkEntries(batch, MAX_ENTRIES, MAX_TOTAL_CHARS)
+  await Promise.all(chunks.map(async (chunk: Pending[]) => {
     const entries: TranslateEntry[] = []
-    for (let i = start; i < end; i++) {
-      entries.push({ key: String(i - start), text: batch[i].text })
+    for (let i = 0; i < chunk.length; i++) {
+      entries.push({ key: String(i), text: chunk[i].text })
     }
     const req: TranslateRequest = { targetLanguage: lang, entries, free: batch[0].free === true }
     try {
       const res: TranslateResponse = await translateBatch(req)
       for (let pi = 0; pi < entries.length; pi++) {
-        const p = batch[start + pi]
+        const p = chunk[pi]
         const r = res.results[pi]
         if (r !== undefined && r.translation !== undefined && r.translation.length > 0) {
           cache.set(cacheKey(lang, p.text), r.translation)
@@ -72,11 +74,11 @@ async function flush(): Promise<void> {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'translation_failed'
-      for (let pi = 0; pi < entries.length; pi++) {
-        batch[start + pi].reject(new Error(msg))
+      for (let pi = 0; pi < chunk.length; pi++) {
+        chunk[pi].reject(new Error(msg))
       }
     }
-  }
+  }))
 }
 
 export function translate(text: string, lang: TargetLanguage, free: boolean = false): Promise<string> {

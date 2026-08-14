@@ -9,7 +9,7 @@ import { htmlToText, ImmersiveTranslation } from '../components/ImmersiveTransla
 import { savePixelMapToCache, shareImage } from '../../../media/ShareImage'
 import { deriveTargetLanguage } from '../application/Locale'
 import { translate } from '../application/TranslationCache'
-import { telemetry } from '../../../telemetry/Telemetry'
+import { telemetry, TelemetryValue } from '../../../telemetry/Telemetry'
 
 function timeAgo(unix: number): string {
   const now = Math.floor(Date.now() / 1000)
@@ -29,6 +29,8 @@ interface DialogIndex {
   index: number
 }
 
+const RENDER_BATCH = 30
+
 @Component
 export struct StoryDetailPage {
   @ObjectLink store: AppStore
@@ -40,6 +42,18 @@ export struct StoryDetailPage {
   @State summary: string = ''
   @State topComments: CardComment[] = []
   @State refreshing: boolean = false
+  // 分屏渲染：先挂载前 RENDER_BATCH 条评论（重量级 Markdown 组件），
+  // 滚动接近底部再挂下一批，避免 200 条同时 mount 卡顿；未挂载的评论
+  // 不实例化 ImmersiveTranslation，其翻译也推迟到挂载时才触发（懒翻译）。
+  @State renderLimit: number = RENDER_BATCH
+  // 加载耗时埋点（detail_timing 事件）：各阶段毫秒数
+  private timingStart: number = 0
+  private timingStoryMs: number = -1
+  private timingTreeMs: number = -1
+  private timingTreePath: string = ''
+  private timingTreeCached: boolean = false
+  private timingCommentCount: number = 0
+  private timingSummaryMs: number = -1
 
   aboutToAppear(): void {
     this.load()
@@ -49,9 +63,15 @@ export struct StoryDetailPage {
     const id = this.store.geekReaderStoryId
     if (id <= 0) { this.loading = false; return }
     this.loading = true
+    this.timingStart = Date.now()
+    this.timingStoryMs = -1
+    this.timingTreeMs = -1
+    this.timingSummaryMs = -1
     try {
+      const storyStart = Date.now()
       const top = await fetchItems([id])
       const s = toStory(top.items[0] ?? null)
+      this.timingStoryMs = Date.now() - storyStart
       this.story = s
       // 写入共享标题，NavDestination 标题栏据此显示文章标题
       this.store.detailTitle = s?.title ?? ''
@@ -68,15 +88,18 @@ export struct StoryDetailPage {
   private async refresh(): Promise<void> {
     const id = this.store.geekReaderStoryId
     if (id <= 0) { this.refreshing = false; return }
+    this.renderLimit = RENDER_BATCH // 重置分屏渲染，回顶部重新渐进挂载
+    this.timingStart = Date.now() // 重置计时起点，避免 total_ms 混入页面停留时间
     try {
+      const storyStart = Date.now()
       const top = await fetchItems([id])
       const s = toStory(top.items[0] ?? null)
+      this.timingStoryMs = Date.now() - storyStart
       this.story = s
       this.store.detailTitle = s?.title ?? ''
       if (s !== null) {
         this.tree = []
-        await this.loadComments(s, id)
-        await this.prepareCard()
+        await this.loadComments(s, id) // 内部完成后会触发 prepareCard + timing 上报
       }
     } catch (e) {
       // 刷新失败保留原内容
@@ -88,24 +111,48 @@ export struct StoryDetailPage {
   /** 异步拉取评论树（不阻塞正文显示）。优先整树接口（后端并发解析），失败回退逐层。 */
   private async loadComments(s: Story, id: number): Promise<void> {
     this.commentsLoading = true
+    const treeStart = Date.now()
     try {
       try {
         await this.loadTreeFast(id)
+        this.timingTreePath = 'tree'
       } catch (e) {
         telemetry.report(new Error(`comment_tree_failed: ${e instanceof Error ? e.message : String(e)}`))
         await this.loadTreeBfs(s, id)
+        this.timingTreePath = 'bfs'
       }
+      this.timingTreeMs = Date.now() - treeStart
+      this.timingCommentCount = this.buildFlat().length
+      this.reportTiming('ok')
       this.prepareCard()
     } catch {
+      this.timingTreeMs = Date.now() - treeStart
+      this.reportTiming('tree_error')
       // 评论加载失败不影响正文展示
     } finally {
       this.commentsLoading = false
     }
   }
 
+  /** 埋点：详情页各阶段耗时（ms）。 */
+  private reportTiming(result: string): void {
+    const props = new Map<string, TelemetryValue>()
+    props.set('story_id', this.story?.id ?? 0)
+    props.set('result', result)
+    props.set('path', this.timingTreePath)
+    props.set('story_ms', this.timingStoryMs)
+    props.set('tree_ms', this.timingTreeMs)
+    props.set('comments', this.timingCommentCount)
+    props.set('summary_ms', this.timingSummaryMs)
+    props.set('total_ms', Date.now() - this.timingStart)
+    props.set('cached_tree', this.timingTreeCached)
+    telemetry.track('detail_timing', props)
+  }
+
   /** 整树一次拉取（服务端并发，快）。 */
   private async loadTreeFast(id: number): Promise<void> {
     const res = await fetchStoryTree(id)
+    this.timingTreeCached = res.cached === true
     const all: Comment[] = []
     for (let i = 0; i < res.items.length; i++) {
       const cm = toComment(res.items[i])
@@ -247,7 +294,7 @@ export struct StoryDetailPage {
   /** 评论加载完成后生成精选评论（清洗 HTML + 翻译）+ LLM 摘要（后端按 storyId 缓存）。 */
   private async prepareCard(): Promise<void> {
     if (this.story === null) return
-    console.log(`[geekread][card] prepareCard start tree=${this.tree.length} lang=${deriveTargetLanguage(this.store.language)}`)
+    const cardStart = Date.now()
     const lang = deriveTargetLanguage(this.store.language) // null = 英文用户，无需翻译
 
     // 精选评论：HTML → 干净文本（英文原文，供摘要与翻译用）
@@ -282,10 +329,18 @@ export struct StoryDetailPage {
     } catch (e) {
       this.summary = ''
       const msg = e instanceof Error ? e.message : String(e)
-      console.log(`[geekread][card] summarize FAILED: ${msg}`)
       telemetry.report(new Error(`summarize_failed: ${msg}`))
     }
-    console.log(`[geekread][card] done summary=${this.summary.length > 0} top=${this.topComments.length}`)
+    this.timingSummaryMs = Date.now() - cardStart
+    // 摘要完成后补报一次（含 summary_ms；tree 阶段已报过的不含）
+    const props = new Map<string, TelemetryValue>()
+    props.set('story_id', this.story.id)
+    props.set('result', this.summary.length > 0 ? 'card_ok' : 'card_no_summary')
+    props.set('story_ms', this.timingStoryMs)
+    props.set('tree_ms', this.timingTreeMs)
+    props.set('summary_ms', this.timingSummaryMs)
+    props.set('total_ms', Date.now() - this.timingStart)
+    telemetry.track('detail_timing', props)
   }
 
   private async share(): Promise<void> {
@@ -306,6 +361,14 @@ export struct StoryDetailPage {
     const acc: FlatComment[] = []
     flattenTree(this.tree, 0, set, acc)
     return acc
+  }
+
+  /** 滚到底部：还有未挂载评论时挂下一批（分屏渲染）。 */
+  private onCommentsEnd(): void {
+    const flat = this.buildFlat()
+    if (this.renderLimit < flat.length) {
+      this.renderLimit += RENDER_BATCH
+    }
   }
 
   build() {
@@ -352,7 +415,7 @@ export struct StoryDetailPage {
                   .width('100%').justifyContent(FlexAlign.Center).padding({ top: AppSpacing.x4 })
               }
 
-              ForEach(this.buildFlat(), (fc: FlatComment) => {
+              ForEach(this.buildFlat().slice(0, this.renderLimit), (fc: FlatComment) => {
                 Column({ space: AppSpacing.x1 }) {
                   if (fc.node.deleted || fc.node.dead) {
                     Text(appString(AppString.Deleted, this.store.language)).fontSize(12).fontColor(AppColors.textSecondary)
@@ -375,10 +438,12 @@ export struct StoryDetailPage {
             .align(Alignment.TopStart)
           }
             // Scroll 的 align 默认是 Alignment.Center，内容矮于视口时会被居中；
-            // 显式设为 TopStart，让内容从顶部开始排列
+            // 显式设为 TopStart，让内容从顶部开始排列。
+            // onReachEnd：分屏渲染挂载下一批评论
             .width('100%')
             .align(Alignment.TopStart)
             .layoutWeight(1)
+            .onReachEnd(() => this.onCommentsEnd())
           }
           .onRefreshing(() => this.refresh())
           .layoutWeight(1)
