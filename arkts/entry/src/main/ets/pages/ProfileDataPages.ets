@@ -40,6 +40,7 @@ export struct StatisticsPage {
             })
           }.padding(AppSpacing.x4)
         }.layoutWeight(1)
+        .align(Alignment.TopStart)
       } else {
         RetryState({ message: this.remote.usageState.message ?? '加载失败',
           retry: () => this.remote.loadUsage() })

@@ -74,6 +74,7 @@ export struct AuthPage {
             .type(this.mode === AuthMode.Verify ||
               this.mode === AuthMode.Phone ? InputType.Number : InputType.Password)
             .backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control)
             .placeholderColor(AppColors.textSecondary)
             .onChange(value => this.password = value)

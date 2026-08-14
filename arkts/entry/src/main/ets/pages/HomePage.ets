@@ -101,6 +101,7 @@ export struct HomePage {
         .padding(AppSpacing.x4)
       }
       .layoutWeight(1)
+      .align(Alignment.TopStart)
     }
     .width('100%')
     .height('100%')

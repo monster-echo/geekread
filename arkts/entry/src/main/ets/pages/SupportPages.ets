@@ -111,6 +111,7 @@ export struct SupportHomePage {
           }.width('100%')
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 }
@@ -146,9 +147,10 @@ export struct SupportTicketPage {
               }, (message: SupportMessage) => message.id)
             }.padding(AppSpacing.x4)
           }.layoutWeight(1)
+          .align(Alignment.TopStart)
           Row({ space: AppSpacing.x2 }) {
             TextInput({ placeholder: '回复内容', text: this.reply })
-              .layoutWeight(1).height(48).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+              .layoutWeight(1).height(48).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
               .onChange(value => this.reply = value)
             Button('发送')
               .height(48)
@@ -192,10 +194,10 @@ export struct NewSupportTicketPage {
       Scroll() {
         Column({ space: AppSpacing.x4 }) {
           TextInput({ placeholder: '主题（至少 4 字）', text: this.subject })
-            .height(52).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(52).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.subject = value)
           TextArea({ placeholder: '描述你遇到的问题（至少 4 字）', text: this.message })
-            .height(140).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(140).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.message = value)
           Text('类别').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
           OptionRow({
@@ -217,6 +219,7 @@ export struct NewSupportTicketPage {
           })
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 
@@ -247,10 +250,10 @@ export struct ProductFeedbackPage {
       Scroll() {
         Column({ space: AppSpacing.x4 }) {
           TextInput({ placeholder: '标题（至少 4 字）', text: this.title })
-            .height(52).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(52).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.title = value)
           TextArea({ placeholder: '你的反馈（至少 4 字）', text: this.body })
-            .height(160).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(160).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.body = value)
           Text('类别').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
           OptionRow({
@@ -272,6 +275,7 @@ export struct ProductFeedbackPage {
           })
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 

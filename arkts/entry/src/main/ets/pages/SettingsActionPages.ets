@@ -258,6 +258,7 @@ export struct LegalDocumentPage {
           }
         }.alignItems(HorizontalAlign.Start).padding(AppSpacing.x4).width('100%')
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 
@@ -364,6 +365,7 @@ export struct ProfileEditPage {
         .constraintSize({ minHeight: '100%' })
         .justifyContent(FlexAlign.Start)
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 

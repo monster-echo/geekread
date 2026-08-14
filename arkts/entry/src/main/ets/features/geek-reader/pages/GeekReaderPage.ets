@@ -253,7 +253,12 @@ export struct GeekReaderPage {
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
               }
-            }.tabBar(appString(AppString.TopStories, this.store.language))
+            }.tabBar(new SubTabBarStyle(appString(AppString.TopStories, this.store.language))
+              .labelStyle({
+                selectedColor: AppColors.brand,
+                unselectedColor: AppColors.textSecondary
+              })
+              .indicator({ color: AppColors.brand }))
 
             TabContent() {
               if (this.latestStatus === AsyncStatus.Success) {
@@ -272,7 +277,12 @@ export struct GeekReaderPage {
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)
               }
-            }.tabBar(appString(AppString.LatestStories, this.store.language))
+            }.tabBar(new SubTabBarStyle(appString(AppString.LatestStories, this.store.language))
+              .labelStyle({
+                selectedColor: AppColors.brand,
+                unselectedColor: AppColors.textSecondary
+              })
+              .indicator({ color: AppColors.brand }))
           }
           .onChange((i: number) => { telemetry.click(`tab_${i}`, 'geekreader'); this.activeTab = i })
           .barMode(BarMode.Fixed)

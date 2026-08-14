@@ -113,6 +113,7 @@ export struct ProfilePage {
           .justifyContent(FlexAlign.Start)
         }
         .layoutWeight(1)
+        .align(Alignment.TopStart)
       }
     }
     .width('100%')
@@ -278,6 +279,7 @@ export struct MembershipPage {
         .padding(AppSpacing.x4)
       }
       .layoutWeight(1)
+      .align(Alignment.TopStart)
       BottomTabs({ store: this.store, selected: AppRoute.Membership })
     }
     .width('100%')

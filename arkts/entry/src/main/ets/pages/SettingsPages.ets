@@ -52,6 +52,7 @@ export struct SettingsPage {
         .padding(AppSpacing.x4)
       }
       .layoutWeight(1)
+      .align(Alignment.TopStart)
     }
     .width('100%')
     .height('100%')
@@ -156,6 +157,7 @@ export struct SettingDetailPage {
             .height(52)
             .type(InputType.Password)
             .backgroundColor(AppColors.surface)
+            .border({ width: 1, color: AppColors.borderStrong })
             .borderRadius(AppRadii.control)
             .onChange(value => this.password = value)
         } else {

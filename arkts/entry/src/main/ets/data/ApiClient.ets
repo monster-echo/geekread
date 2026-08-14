@@ -191,12 +191,11 @@ export class ApiClient {
     ).then(result => result['changed'] === true)
   }
 
-  updateProfile(username: string, displayName: string, bio: string, avatarUrl: string): Promise<AppUser> {
-    return this.request<AppUser>(
-      '/api/v1/me/profile',
-      http.RequestMethod.PUT,
-      { username, displayName, bio, avatarUrl }
-    )
+  updateProfile(displayName: string, bio: string, avatarUrl: string): Promise<AppUser> {
+    if (avatarUrl.length > 0) {
+      return this.request<AppUser>('/api/v1/me/profile', http.RequestMethod.PUT, { displayName, bio, avatarUrl })
+    }
+    return this.request<AppUser>('/api/v1/me/profile', http.RequestMethod.PUT, { displayName, bio })
   }
 
   sessions(): Promise<SessionView[]> {

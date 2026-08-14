@@ -97,6 +97,7 @@ export struct GeekMemberPage {
     .alignItems(HorizontalAlign.Start)
     .width('100%')
     }.layoutWeight(1)
+    .align(Alignment.TopStart)
   }
 
   private buy(plan: BillingPlan): void {

@@ -13,6 +13,7 @@ import { telemetry, TelemetryConfig } from '../telemetry/Telemetry'
 import { AppTelemetrySink } from '../telemetry/AppTelemetrySink'
 import { guardRoute } from '../navigation/RouteGuard'
 import { initAppStrings } from '../localization/AppStrings'
+import { AppColors } from '../theme/AppTokens'
 
 @Observed
 export class AppStore {
@@ -634,12 +635,13 @@ export class AppStore {
     const ui = this.uiContext
     if (ui === null) return
     try {
-      // 原生 toast：顶部对齐（offset 单位 px，避开状态栏），文字色由系统按深浅色自动适配
+      // 原生 toast，顶部对齐（offset 单位 px，避开状态栏）；error 时文字用红色调区分
       ui.getPromptAction().showToast({
         message,
         duration: 2400,
         alignment: Alignment.Top,
         offset: { dx: 0, dy: 120 },
+        textColor: error ? AppColors.error : AppColors.text,
       })
     } catch (e) {
       // 启动早期 UI 未就绪时静默降级，不影响主流程

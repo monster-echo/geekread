@@ -95,6 +95,7 @@ export struct LanguagePreferencePage {
           })
         }.padding(AppSpacing.x4).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1)
+      .align(Alignment.TopStart)
     }.width('100%').height('100%')
   }
 

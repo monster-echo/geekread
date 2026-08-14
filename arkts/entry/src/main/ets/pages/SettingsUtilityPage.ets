@@ -43,10 +43,10 @@ export struct SettingsUtilityPage {
       } else {
         Column({ space: AppSpacing.x4 }) {
           TextInput({ placeholder: '反馈标题', text: this.title })
-            .height(52).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(52).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.title = value)
           TextInput({ placeholder: '告诉我们哪里可以做得更好', text: this.body })
-            .height(160).backgroundColor(AppColors.surface).borderRadius(AppRadii.control)
+            .height(160).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
             .onChange(value => this.body = value)
           AppButton({ label: this.store.busy ? '提交中…' : '提交意见反馈',
             icon: AppIconName.Check, onTap: () => this.submit() })

@@ -82,6 +82,7 @@ export class ApiTransport {
   private language: string = 'zh-CN'
   private refreshInFlight: Promise<boolean> | null = null
   private sessionExpiredCallback: (() => void) | null = null
+  private lastPath: string = ''
 
   constructor() {
     if (APP_ID.length === 0) throw new Error('APP_ID is required')
@@ -117,6 +118,7 @@ export class ApiTransport {
   ): Promise<T> {
     const client = http.createHttp()
     try {
+      this.lastPath = path
       const merged = this.headers()
       if (extraHeaders !== undefined) {
         const keys = Object.keys(extraHeaders)
@@ -163,7 +165,7 @@ export class ApiTransport {
       const failure = JSON.parse(text) as ApiErrorBody
       const error = failure.error
       // API 失败埋点：console + telemetry（app_error），便于排查前端请求问题
-      console.error(`[geekread][api] ${status} ${error.code} ${error.message}`)
+      console.error(`[geekread][api] ${status} ${this.lastPath} ${error.code} ${error.message}`)
       telemetry.report(new Error(`api_${status}_${error.code}`))
       return new ApiFailure(
         error.code,
