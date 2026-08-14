@@ -2,10 +2,10 @@ import './proxy';
 import { getJsonCache, setJsonCache } from './storage';
 
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
-const listFreshTtlSeconds = 60;
-const listStaleTtlSeconds = 600;
-const itemFreshTtlSeconds = 300;
-const itemStaleTtlSeconds = 3600;
+const listFreshTtlSeconds = 180;
+const listStaleTtlSeconds = 1200;
+const itemFreshTtlSeconds = 900;
+const itemStaleTtlSeconds = 7200;
 // HN 冷拉较慢：提高并发（20 一批拉完）并缩短超时（慢请求快速失败），
 // 避免无缓存首次加载卡十几秒。
 const fetchTimeoutMs = 8_000;
@@ -46,6 +46,11 @@ export async function fetchStoryIds(type: 'top' | 'latest'): Promise<{
   const cacheKey = `hn:stories:${type}`;
   const cached = await getJsonCache<number[]>(cacheKey);
   if (cached && !cached.stale) return { ids: cached.value, cached: true, stale: false };
+  // SWR：fresh 过期但 stale 内 → 先返回旧值（秒出），后台异步刷新
+  if (cached && cached.stale) {
+    refreshStoryIdsInBackground(type).catch(() => {});
+    return { ids: cached.value, cached: true, stale: true };
+  }
 
   try {
     const path = type === 'top' ? '/topstories.json' : '/newstories.json';
@@ -58,6 +63,19 @@ export async function fetchStoryIds(type: 'top' | 'latest'): Promise<{
   } catch (error) {
     if (cached) return { ids: cached.value, cached: true, stale: true };
     throw error;
+  }
+}
+
+/** SWR 后台刷新：拉最新列表写入缓存，不影响用户请求（失败静默）。 */
+async function refreshStoryIdsInBackground(type: 'top' | 'latest'): Promise<void> {
+  try {
+    const path = type === 'top' ? '/topstories.json' : '/newstories.json';
+    const ids = await fetchJson<number[]>(path);
+    if (Array.isArray(ids) && ids.every((id) => Number.isInteger(id))) {
+      await setJsonCache(`hn:stories:${type}`, ids, listFreshTtlSeconds, listStaleTtlSeconds);
+    }
+  } catch {
+    // 后台刷新失败不影响用户（下次请求再用 stale）
   }
 }
 

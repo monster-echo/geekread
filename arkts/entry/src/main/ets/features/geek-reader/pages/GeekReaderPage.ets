@@ -3,6 +3,7 @@ import { AppStore } from '../../../state/AppStore'
 import { AppRoute } from '../../../navigation/AppRoute'
 import { AsyncStatus } from '../../../state/AsyncState'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
+import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
 import { localized, appString, AppString } from '../../../localization/AppStrings'
 import { fetchQuota, fetchStories, fetchStoriesResolved, ReaderQuota } from '../data/GeekReaderApiClient'
 import { Story } from '../domain/Models'
@@ -153,17 +154,38 @@ export struct GeekReaderPage {
       .width('100%')
       .padding({ left: AppSpacing.x5, right: AppSpacing.x5, top: AppSpacing.x5, bottom: AppSpacing.x2 })
       .alignItems(VerticalAlign.Center)
-      Column({ space: AppSpacing.x1 }) {
-        Text(this.store.signedIn ? (this.store.user?.displayName ?? appString(AppString.NotLoggedIn, this.store.language)) : appString(AppString.NotLoggedIn, this.store.language))
-          .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
-        Text(this.store.signedIn ? '' : appString(AppString.Login, this.store.language)).fontSize(12).fontColor(AppColors.brand)
-      }.width('100%').alignItems(HorizontalAlign.Start).padding(AppSpacing.x5)
-      .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
       this.MenuRow(appString(AppString.Settings, this.store.language), 'settings.home')
       this.MenuRow(appString(AppString.About, this.store.language), 'settings.about')
       this.MenuRow(appString(AppString.Legal, this.store.language), 'settings.legal')
       Blank()
-      // 底部：今日翻译额度进度 footer（点击 → 未登录登录页 / 已登录会员页）
+      // ── 底部：用户信息 + 今日翻译额度 ──
+      // 用户信息（头像 + 昵称/登录提示），点击 → 个人资料 / 登录
+      Row({ space: AppSpacing.x3 }) {
+        // 头像：有 avatarUrl 显示图片，否则用品牌色占位图标
+        if ((this.store.user?.avatarUrl ?? '').length > 0) {
+          Image(this.store.user?.avatarUrl ?? '')
+            .width(48).height(48).borderRadius(24)
+            .objectFit(ImageFit.Cover)
+            .backgroundColor(AppColors.surfaceMuted)
+        } else {
+          Column() {
+            AppIcon({ name: AppIconName.User, color: AppColors.brand, iconSize: 24 })
+          }
+          .width(48).height(48).borderRadius(24)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor(AppColors.brandSoft)
+        }
+        Column({ space: AppSpacing.x1 }) {
+          Text(this.store.signedIn ? (this.store.user?.displayName ?? appString(AppString.NotLoggedIn, this.store.language)) : appString(AppString.NotLoggedIn, this.store.language))
+            .fontSize(18).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
+          Text(this.store.signedIn ? '' : appString(AppString.Login, this.store.language)).fontSize(12).fontColor(AppColors.brand)
+        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
+      }
+      .width('100%')
+      .padding({ left: AppSpacing.x5, right: AppSpacing.x5 })
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => this.goto(this.store.signedIn ? 'profile.home' : 'SignIn'))
+      // 今日翻译额度进度 footer（点击 → 未登录登录页 / 已登录会员页）
       Column({ space: AppSpacing.x2 }) {
         Text('今日翻译额度').fontSize(13).fontColor(AppColors.textSecondary).width('100%')
         if (this.quota !== null) {

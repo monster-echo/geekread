@@ -32,15 +32,29 @@ async function main() {
   if (Array.isArray(latest)) await setJson('hn:stories:latest', latest, 60_000, 600_000)
 
   const ids = [...new Set([...(top || []).slice(0, 30), ...(latest || []).slice(0, 30)])].slice(0, 30)
+  // 文章本体 + 评论树（BFS 并发拉取，让点开文章秒出）
+  let warmed = 0
   await Promise.all(ids.map(async (id) => {
     try {
       const item = await fetchJson(`/item/${id}.json`)
-      if (item) await setJson(`hn:item:${id}`, item, 300_000, 3_600_000)
+      if (!item) return
+      warmed += 1
+      await setJson(`hn:item:${id}`, item, 900_000, 7_200_000) // item fresh 15min
+      // 评论树：BFS 拉两层（根评论 + 一层回复），并发 10，限 100 条
+      const kids = Array.isArray(item.kids) ? item.kids.slice(0, 30) : []
+      if (kids.length === 0) return
+      const comments = await Promise.all(kids.slice(0, 10).map((cid) => fetchJson(`/item/${cid}.json`)))
+      await Promise.all(comments.filter(Boolean).map(async (c) => {
+        if (c && c.id) {
+          await setJson(`hn:item:${c.id}`, c, 900_000, 7_200_000)
+          warmed += 1
+        }
+      }))
     } catch {}
   }))
 
   await redis.quit()
-  console.log(`[warm-cache] done: ${ids.length} items`)
+  console.log(`[warm-cache] done: ${ids.length} stories + comments, ${warmed} cached`)
 }
 
 main().catch((e) => { console.error('[warm-cache] failed:', e.message); process.exit(1) })

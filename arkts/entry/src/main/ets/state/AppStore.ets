@@ -515,16 +515,63 @@ export class AppStore {
   async updateProfile(displayName: string, bio: string, avatarUrl: string): Promise<boolean> {
     if (!this.signedIn || this.busy) return false
     this.busy = true
+    // 先本地乐观更新：无论服务端是否回吐 avatarUrl，个人资料页都立即展示新头像/昵称/简介。
+    this.applyLocalProfile(displayName, bio, avatarUrl)
     try {
-      this.user = await apiClient.updateProfile(displayName, bio, avatarUrl)
+      const updated = await apiClient.updateProfile(displayName, bio, avatarUrl)
+      // 服务端返回的用户若带这些字段则以其为准；否则保留本地乐观值。
+      if (updated !== null) {
+        const merged = this.mergeProfileFields(updated, displayName, bio, avatarUrl)
+        this.user = merged
+      }
       this.showToast('个人资料已同步到服务端')
       return true
     } catch (error) {
+      // 服务端同步失败，但本地已乐观更新，页面仍显示新头像；提示同步失败。
       this.showApiError(error)
       return false
     } finally {
       this.busy = false
     }
+  }
+
+  private applyLocalProfile(displayName: string, bio: string, avatarUrl: string): void {
+    const current = this.user
+    if (current === null) return
+    const next: AppUser = {
+      id: current.id,
+      email: current.email,
+      username: current.username,
+      displayName: displayName,
+      bio: bio,
+      avatarUrl: avatarUrl.length > 0 ? avatarUrl : current.avatarUrl,
+      tierId: current.tierId,
+      settings: current.settings,
+      emailVerified: current.emailVerified,
+      consentVersion: current.consentVersion,
+      createdAt: current.createdAt,
+      hasEmail: current.hasEmail
+    }
+    this.user = next
+  }
+
+  private mergeProfileFields(updated: AppUser, displayName: string, bio: string, avatarUrl: string): AppUser {
+    const merged: AppUser = {
+      id: updated.id,
+      email: updated.email,
+      username: updated.username,
+      displayName: updated.displayName.length > 0 ? updated.displayName : displayName,
+      bio: updated.bio.length > 0 ? updated.bio : bio,
+      avatarUrl: (updated.avatarUrl === null || updated.avatarUrl.length === 0) && avatarUrl.length > 0
+        ? avatarUrl : updated.avatarUrl,
+      tierId: updated.tierId,
+      settings: updated.settings,
+      emailVerified: updated.emailVerified,
+      consentVersion: updated.consentVersion,
+      createdAt: updated.createdAt,
+      hasEmail: updated.hasEmail
+    }
+    return merged
   }
 
   async submitFeedback(

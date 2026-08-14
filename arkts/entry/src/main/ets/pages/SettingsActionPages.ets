@@ -6,7 +6,13 @@ import { AppButton, AppListRow, PageHeader } from '../design_system/Components'
 import { AppIcon, AppIconName } from '../design_system/AppIcon'
 import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { LegalDocument } from '../domain/Models'
-import { pickAvatarDataUrl } from '../media/AvatarPicker'
+import { AvatarCropEditor } from '../media/AvatarCropEditor'
+import {
+  pickAvatarPixelMap,
+  cropPixelMapToAvatar,
+  CropRect,
+  type AvatarSource
+} from '../media/AvatarPicker'
 import { appString, AppString } from '../localization/AppStrings'
 import { Markdown, MarkdownController } from '@luvi/lv-markdown-in'
 
@@ -314,12 +320,29 @@ export struct ProfileEditPage {
   @State displayName: string = ''
   @State bio: string = ''
   @State avatarUrl: string = ''
+  // 是否显示裁剪编辑器覆盖层
+  @State editing: boolean = false
+  // 待裁剪头像（PixelMap 为 SDK 对象，不能作为 @State，用普通成员保存）
+  private picked: AvatarSource | null = null
+  // 正在把裁剪结果打包成 dataURL
+  @State cropping: boolean = false
 
   aboutToAppear(): void {
     this.username = this.store.user?.username ?? ''
     this.displayName = this.store.user?.displayName ?? ''
     this.bio = this.store.user?.bio ?? ''
     this.avatarUrl = this.store.user?.avatarUrl ?? ''
+  }
+
+  aboutToDisappear(): void {
+    this.releasePicked()
+  }
+
+  private releasePicked(): void {
+    if (this.picked !== null) {
+      try { this.picked.pixelMap.release() } catch (e) { /* ignore */ }
+      this.picked = null
+    }
   }
 
   build() {
@@ -366,16 +389,66 @@ export struct ProfileEditPage {
         .justifyContent(FlexAlign.Start)
       }.layoutWeight(1)
       .align(Alignment.TopStart)
-    }.width('100%').height('100%')
+    }
+    .width('100%').height('100%')
+    .bindSheet(this.editing, this.cropSheetBuilder(), {
+      height: '66%',
+      dragBar: true,
+      maskColor: '#66000000',
+      modalTransition: ModalTransition.DEFAULT,
+      onDisappear: () => {
+        if (this.picked !== null) {
+          this.editing = false
+          this.releasePicked()
+        }
+      }
+    })
+  }
+
+  @Builder
+  private cropSheetBuilder() {
+    if (this.picked !== null) {
+      AvatarCropEditor({
+        sourceWidth: this.picked.width,
+        sourceHeight: this.picked.height,
+        pixelMap: this.picked.pixelMap,
+        onCancel: () => {
+          this.editing = false
+          this.releasePicked()
+        },
+        onCropReady: (crop: CropRect) => {
+          this.confirmCrop(crop)
+        }
+      })
+    }
   }
 
   private async pickAvatar(): Promise<void> {
     const context = this.getUIContext().getHostContext() as common.UIAbilityContext
     try {
-      const dataUrl = await pickAvatarDataUrl(context)
-      if (dataUrl !== null) this.avatarUrl = dataUrl
+      this.releasePicked()
+      const source = await pickAvatarPixelMap(context)
+      if (source !== null) {
+        this.picked = source
+        this.editing = true
+      }
     } catch (error) {
       this.store.showToast('头像处理失败，请重试', true)
+    }
+  }
+
+  private async confirmCrop(crop: CropRect): Promise<void> {
+    if (this.picked === null || this.cropping) return
+    this.cropping = true
+    try {
+      const dataUrl = await cropPixelMapToAvatar(this.picked.pixelMap, crop)
+      this.avatarUrl = dataUrl
+      this.editing = false
+      this.releasePicked()
+    } catch (error) {
+      this.store.showToast('头像处理失败，请重试', true)
+    } finally {
+      this.cropping = false
     }
   }
 }
