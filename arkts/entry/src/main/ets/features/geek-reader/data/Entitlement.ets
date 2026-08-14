@@ -1,5 +1,6 @@
 import http from '@ohos.net.http'
 import { localStore } from '../../../data/LocalStore'
+import { telemetry } from '../../../telemetry/Telemetry'
 
 // MobileStarter server（共享通用后端）基址。ArkTS 无 env 系统，部署时改本常量。
 const MOBILE_STARTER_BASE: string = 'https://auth.zhongbei.tech'
@@ -45,6 +46,9 @@ export async function getEntitlementToken(): Promise<string> {
     cached = { token: body.token, expiresAt: body.expiresAt }
     return body.token ?? ''
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(`[geekread][entitlement] failed: ${msg}`)
+    telemetry.report(new Error(`entitlement_failed: ${msg}`))
     return cached.token ?? ''
   } finally {
     client.destroy()

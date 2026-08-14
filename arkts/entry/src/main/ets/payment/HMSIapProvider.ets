@@ -7,6 +7,7 @@ import util from '@ohos.util'
 import { iap } from '@kit.IAPKit'
 import { PurchaseResult, StoreProduct, StoreProductMapping } from '../domain/Models'
 import { PaymentProvider } from './PaymentProvider'
+import { telemetry } from '../telemetry/Telemetry'
 
 interface IapPurchaseData {
   purchaseToken?: string
@@ -44,6 +45,7 @@ export class HMSIapProvider implements PaymentProvider {
     return iap.queryEnvironmentStatus(ctx)
       .then(() => this.doPurchase(ctx, storeProductId))
       .catch((e: Error) => {
+        telemetry.report(new Error(`iap_purchase_failed: ${e.message}`))
         throw new Error(`IAP unavailable: ${e.message}`)
       })
   }

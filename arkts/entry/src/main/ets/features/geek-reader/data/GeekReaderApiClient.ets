@@ -3,8 +3,15 @@ import { localStore } from '../../../data/LocalStore'
 import { HNItem, Story, TargetLanguage } from '../domain/Models'
 import { toStory } from '../domain/Models'
 import { getEntitlementToken } from './Entitlement'
+import { telemetry } from '../../../telemetry/Telemetry'
 
 const GEEK_READER_BASE: string = 'https://geekread.app.zhongbei.tech'
+
+/** BusinessError（http 请求失败）的最小结构，用于提取真实报错。 */
+interface HttpErrorLike {
+  message?: string
+  code?: number
+}
 
 export interface TranslateEntry {
   key: string
@@ -68,8 +75,18 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
     }
     return text
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
+    // http.createHttp 失败抛的是 BusinessError 对象（非 Error 实例），String() 会变成
+    // "[object Object]" 丢失真实原因；这里统一提取 message/code。
+    let msg = String(e)
+    if (e instanceof Error) {
+      if (e.message.length > 0) msg = e.message
+    } else {
+      const like = e as HttpErrorLike
+      if (like.message !== undefined && like.message.length > 0) msg = like.message
+      else if (like.code !== undefined) msg = String(like.code)
+    }
     console.error(`[geekread][reader] ${path} failed: ${msg}`)
+    telemetry.report(new Error(`reader_network_${path.replace(/\//g, '_')}: ${msg}`))
     throw new Error(`geekreader_network: ${msg}`)
   } finally {
     client.destroy()

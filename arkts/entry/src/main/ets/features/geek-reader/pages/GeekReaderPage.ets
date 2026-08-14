@@ -44,6 +44,7 @@ export struct GeekReaderPage {
       this.setStatus(type, result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success)
     } catch (e) {
       this.errorMessage = e instanceof Error ? e.message : '网络错误'
+      telemetry.report(new Error(`stories_fetch_failed_${type}: ${this.errorMessage}`))
       this.setStatus(type, AsyncStatus.Error)
     } finally {
       this.refreshing = false

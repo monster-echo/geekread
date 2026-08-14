@@ -3,6 +3,7 @@ import { deriveTargetLanguage } from '../application/Locale'
 import { translate } from '../application/TranslationCache'
 import { TargetLanguage } from '../domain/Models'
 import { Markdown, MarkdownController } from '@luvi/lv-markdown-in'
+import { telemetry } from '../../../telemetry/Telemetry'
 
 function labelOf(lang: TargetLanguage | null): string {
   if (lang === 'zh-Hans') return '简体中文'
@@ -131,6 +132,8 @@ export struct ImmersiveTranslation {
         const msg = e instanceof Error ? e.message : String(e)
         if (msg === 'quota_exceeded') {
           this.isQuota = true
+        } else {
+          telemetry.report(new Error(`translate_failed: ${msg}`))
         }
         this.failedMsg = msg
         this.failed = true

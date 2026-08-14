@@ -9,6 +9,7 @@ import { htmlToText, ImmersiveTranslation } from '../components/ImmersiveTransla
 import { savePixelMapToCache, shareImage } from '../../../media/ShareImage'
 import { deriveTargetLanguage } from '../application/Locale'
 import { translate } from '../application/TranslationCache'
+import { telemetry } from '../../../telemetry/Telemetry'
 
 function timeAgo(unix: number): string {
   const now = Math.floor(Date.now() / 1000)
@@ -91,6 +92,7 @@ export struct StoryDetailPage {
       try {
         await this.loadTreeFast(id)
       } catch (e) {
+        telemetry.report(new Error(`comment_tree_failed: ${e instanceof Error ? e.message : String(e)}`))
         await this.loadTreeBfs(s, id)
       }
       this.prepareCard()
@@ -245,6 +247,7 @@ export struct StoryDetailPage {
   /** 评论加载完成后生成精选评论（清洗 HTML + 翻译）+ LLM 摘要（后端按 storyId 缓存）。 */
   private async prepareCard(): Promise<void> {
     if (this.story === null) return
+    console.log(`[geekread][card] prepareCard start tree=${this.tree.length} lang=${deriveTargetLanguage(this.store.language)}`)
     const lang = deriveTargetLanguage(this.store.language) // null = 英文用户，无需翻译
 
     // 精选评论：HTML → 干净文本（英文原文，供摘要与翻译用）
@@ -266,6 +269,7 @@ export struct StoryDetailPage {
       this.topComments = translated
     }
 
+    console.log(`[geekread][card] after pickTopComments=${this.topComments.length} tree=${this.tree.length}`)
     // LLM 摘要：英文评论给模型，输出目标语言摘要（lang 为 null 时用英文）
     try {
       this.summary = await summarizeStory({
@@ -277,7 +281,11 @@ export struct StoryDetailPage {
       })
     } catch (e) {
       this.summary = ''
+      const msg = e instanceof Error ? e.message : String(e)
+      console.log(`[geekread][card] summarize FAILED: ${msg}`)
+      telemetry.report(new Error(`summarize_failed: ${msg}`))
     }
+    console.log(`[geekread][card] done summary=${this.summary.length > 0} top=${this.topComments.length}`)
   }
 
   private async share(): Promise<void> {
