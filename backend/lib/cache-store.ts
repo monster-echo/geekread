@@ -6,9 +6,7 @@ const memTranslations = new Map<string, string>();
 const memSummaries = new Map<string, string>();
 
 function digest(parts: string[]): string {
-  const hash = createHash('sha256');
-  for (const part of parts) hash.update(part).update('\0');
-  return hash.digest('hex');
+  return createHash('sha256').update(parts.join('\0')).digest('hex');
 }
 
 function translationKey(text: string, targetLanguage: string): string {
@@ -47,7 +45,7 @@ export async function cacheTranslation(
     memTranslations.set(hash, value);
     return;
   }
-  // 永久保存：同 hash 只写一次，冲突时保留旧值即可（幂等）
+  // 永久保存：幂等 upsert，同 hash 重写 result（模型升级重译时刷新）
   await client.translation.upsert({
     where: { hash },
     create: { hash, lang: targetLanguage, source: text, result: value },
