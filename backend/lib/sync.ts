@@ -1,5 +1,5 @@
 // backend/lib/sync.ts
-import { fetchItems, fetchJson } from './hacker-news';
+import { fetchItems, fetchJson, ITEM_FRESH_SECONDS } from './hacker-news';
 import { oldestFetchedStories, readItems, readStoryList, saveStoryList, upsertItems } from './hn-store';
 import { hnHealth } from './hn-health';
 
@@ -43,7 +43,7 @@ export async function warmStoryHeaders(ids: number[]): Promise<number[]> {
       const old = before.get(id);
       const ageSeconds = old ? (Date.now() - old.fetchedAt.getTime()) / 1000 : Infinity;
       let fresh: { descendants?: unknown } | null | undefined;
-      if (old && ageSeconds <= 900) {
+      if (old && ageSeconds <= ITEM_FRESH_SECONDS) {
         // fresh：跳过网络（增量语义——刚刷过的头不重复拉）
         fresh = old.raw as { descendants?: unknown } | null;
       } else {

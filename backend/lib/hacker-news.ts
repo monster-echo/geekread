@@ -6,7 +6,7 @@ import { hnHealth } from './hn-health';
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
 const listFreshSeconds = 180;      // 列表 fresh 3min
 const listStaleSeconds = 1200;     // 超 20min 同步刷新一次
-const itemFreshSeconds = 900;      // 条目 fresh 15min
+export const ITEM_FRESH_SECONDS = 900;      // 条目 fresh 15min
 const fetchTimeoutMs = 8_000;
 const fetchConcurrency = 20;
 
@@ -110,7 +110,7 @@ async function resolveItem(id: number): Promise<ItemOutcome> {
   const hit = rows.get(id);
   if (hit) {
     const ageSeconds = (Date.now() - hit.fetchedAt.getTime()) / 1000;
-    if (ageSeconds <= itemFreshSeconds) return { item: hit.raw, cached: true, stale: false };
+    if (ageSeconds <= ITEM_FRESH_SECONDS) return { item: hit.raw, cached: true, stale: false };
     // 超 fresh：返回旧值 + 后台刷新（fire-and-forget）
     refreshItemInBackground(id).catch(() => {});
     return { item: hit.raw, cached: true, stale: true };
