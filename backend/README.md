@@ -2,15 +2,17 @@
 
 HN 代理 + 沉浸翻译 + 配额 + Pro 权益验签。极客译读客户端专属，与 MobileStarter 共享 server 解耦。
 
-## 运行
+## 快速开始
 
 ```bash
-cp .env.example .env.local   # 至少填 MODEL_API_URL/KEY/NAME 与 ENTITLEMENT_SIGNING_SECRET
+cp .env.example .env.local   # 至少填 DATABASE_URL、MODEL_API_URL/KEY/NAME 与 ENTITLEMENT_SIGNING_SECRET
+docker compose up -d --build # postgres + backend（启动自动 prisma migrate deploy）
 npm install
-npm run dev                  # http://localhost:8787
+npm run dev                  # http://localhost:8787（内置调度器仅生产自动启用）
 ```
 
-无 `REDIS_URL` 时自动回退内存缓存/配额（仅 dev）。
+存储：PostgreSQL 唯一持久层（文章/评论/翻译/摘要/配额/举报）。
+无 `DATABASE_URL` 时自动回退内存（仅 dev/test）。生产内置 60s 预热调度器（AIMD 自适应）。
 
 ## 接口
 
@@ -21,7 +23,7 @@ npm run dev                  # http://localhost:8787
 ## 测试
 
 ```bash
-npm test                     # vitest，内存模式，无需 Redis/LLM
+npm test                     # vitest，内存模式，无需 PG/LLM
 ```
 
 ## 部署

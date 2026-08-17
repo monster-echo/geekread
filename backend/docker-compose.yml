@@ -1,0 +1,34 @@
+# backend/docker-compose.yml
+services:
+  postgres:
+    image: docker.m.daocloud.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: geekread
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: geekread
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geekread"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://geekread:${POSTGRES_PASSWORD}@postgres:5432/geekread
+      MODEL_API_URL: ${MODEL_API_URL}
+      MODEL_API_KEY: ${MODEL_API_KEY}
+      MODEL_NAME: ${MODEL_NAME}
+      ENTITLEMENT_SIGNING_SECRET: ${ENTITLEMENT_SIGNING_SECRET}
+      HACKER_NEWS_API_URL: ${HACKER_NEWS_API_URL:-}
+      WARM_CACHE_TOKEN: ${WARM_CACHE_TOKEN:-}
+    ports:
+      - "8787:8787"
+
+volumes:
+  pgdata:

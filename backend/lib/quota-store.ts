@@ -42,6 +42,8 @@ export async function reserveTranslation(
     await client.quotaUsage.update({
       where: { day_clientId: { day, clientId } },
       data: { used: { decrement: 1 } },
+    }).catch((error) => {
+      process.stderr.write(`[geekread][quota] rollback-over-limit failed: ${String(error)}\n`);
     });
     return { allowed: false, remaining: 0, rollback: async () => undefined };
   }
