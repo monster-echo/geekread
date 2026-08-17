@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// HN 条目（文章+评论统一表，HN 同构 item）。raw 存原始 JSON 兜底；
+/// 富字段供 SQL 查询（树增量用 descendants，轮转用 type+fetchedAt）。
+model HnItem {
+  id          Int      @id
+  type        String?
+  by          String?
+  time        Int?
+  text        String?
+  url         String?
+  title       String?
+  score       Int?
+  descendants Int?
+  kids        Int[]
+  deleted     Boolean  @default(false)
+  dead        Boolean  @default(false)
+  /// HN 对已删除/不存在的 item 返回 null：missing=true 标记，读时还原为 null
+  missing     Boolean  @default(false)
+  raw         Json?
+  fetchedAt   DateTime @default(now())
+
+  @@index([type, fetchedAt])
+}
+
+/// top/latest 两个有序故事列表
+model StoryList {
+  type      String   @id
+  ids       Int[]
+  fetchedAt DateTime @default(now())
+}
+
+/// 翻译（永不过期；hash = sha256(version\0model\0lang\0text)，换模型靠 hash 隔离）
+model Translation {
+  id        Int      @id @default(autoincrement())
+  hash      String   @unique
+  lang      String
+  source    String
+  result    String
+  createdAt DateTime @default(now())
+
+  @@index([lang])
+}
+
+/// AI 摘要（永久）
+model Summary {
+  id        Int      @id @default(autoincrement())
+  hash      String   @unique
+  storyId   Int
+  lang      String
+  result    String
+  createdAt DateTime @default(now())
+}
+
+/// 每日翻译配额（原子 upsert 计数）
+model QuotaUsage {
+  day      String
+  clientId String
+  used     Int      @default(0)
+
+  @@id([day, clientId])
+}
+
+/// 内容举报（替代 Redis list geekread:reports）
+model Report {
+  id        Int      @id @default(autoincrement())
+  storyId   Int
+  commentId Int
+  reason    String
+  text      String   @default("")
+  installId String
+  ts        BigInt   @default(0)
+
+  @@index([ts])
+}
