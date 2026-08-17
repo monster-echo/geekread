@@ -29,7 +29,10 @@ interface DialogIndex {
   index: number
 }
 
-const RENDER_BATCH = 30
+// 每批挂载评论数：单条评论含 Markdown 富文本组件，批量过大会同帧建几十棵组件树，
+// 曾触发 APP_FREEZE 冻屏（IntactRender 整树同步渲染占满主线程）。10 条 + Markdown
+// 懒渲染（ImmersiveTranslation 内 setLazyRender）把单帧爆发切小。
+const RENDER_BATCH = 10
 
 @Component
 export struct StoryDetailPage {

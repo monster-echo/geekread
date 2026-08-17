@@ -85,6 +85,13 @@ export struct ImmersiveTranslation {
   @State failedMsg: string = ''
   @State isQuota: boolean = false
   private mdController: MarkdownController = new MarkdownController()
+  // HTML→Markdown / HTML→Text 结果缓存：build() 每次重渲染（loading/result 状态翻转）
+  // 都会调用 markdown()/clean()，不缓存则同一段文本反复跑十几条正则（30 条评论批量挂载时
+  // 放大 30×2 次）。以源文本比对做失效，text 变化（刷新复用组件）时重算。
+  private mdSrc: string = ''
+  private mdCache: string = ''
+  private cleanSrc: string = ''
+  private cleanCache: string = ''
 
   private get lang(): TargetLanguage | null {
     return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
@@ -104,6 +111,11 @@ export struct ImmersiveTranslation {
         .setInlineCodeBackgroundColor(AppColors.surfaceMuted)
         .setUlPointColor(AppColors.text)
         .setLineColor(AppColors.border)
+        // 可见区域懒渲染（3.4.2+，默认关闭）：屏外块先渲染轻量占位，进入可见区附近
+        // 再渲真实内容。整树同步渲染（IntactRender）曾把主线程占满数秒触发 APP_FREEZE
+        // 冻屏；外层是 Scroll 容器，满足懒渲染触发条件（未开文本选择，无回退问题）。
+        .setLazyRender(true)
+        .setLazyPreloadBlockCount(3)
     } catch (e) {
       // 库未就绪时静默降级（富文本用默认样式）
     }
@@ -142,11 +154,19 @@ export struct ImmersiveTranslation {
   }
 
   private markdown(): string {
-    return htmlToMarkdown(this.text)
+    if (this.mdSrc !== this.text) {
+      this.mdSrc = this.text
+      this.mdCache = htmlToMarkdown(this.text)
+    }
+    return this.mdCache
   }
 
   private clean(): string {
-    return htmlToText(this.text)
+    if (this.cleanSrc !== this.text) {
+      this.cleanSrc = this.text
+      this.cleanCache = htmlToText(this.text)
+    }
+    return this.cleanCache
   }
 
   private showOriginal(): boolean {

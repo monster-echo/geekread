@@ -249,6 +249,9 @@ export struct LegalDocumentPage {
       .setInlineCodeBackgroundColor(AppColors.surfaceMuted)
       .setUlPointColor(AppColors.text)
       .setLineColor(AppColors.border)
+      // 协议文档较长，开启可见区域懒渲染，避免整树同步渲染长文档卡主线程
+      .setLazyRender(true)
+      .setLazyPreloadBlockCount(3)
   }
 
   build() {
