@@ -20,6 +20,13 @@ describe('hn-store (in-memory)', () => {
     expect(rows.has(3)).toBe(false); // 未落库 ≠ missing
   });
 
+  it('readItems 重复 id 去重', async () => {
+    const { upsertItems, readItems } = await import('../lib/hn-store.js');
+    await upsertItems([{ id: 5, raw: { id: 5, type: 'story' } }]);
+    const rows = await readItems([5, 5, 5]);
+    expect(rows.size).toBe(1);
+  });
+
   it('HN null（已删除）存为 missing，读回为 null 语义', async () => {
     const { upsertItems, readItems } = await import('../lib/hn-store.js');
     await upsertItems([{ id: 9, raw: null }]);

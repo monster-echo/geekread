@@ -10,6 +10,9 @@ export type ItemRow = { id: number; raw: HnRawItem; missing: boolean; fetchedAt:
 const memItems = new Map<number, { raw: HnRawItem; fetchedAt: Date }>();
 const memLists = new Map<string, { ids: number[]; fetchedAt: Date }>();
 
+/** PG upsert 分片大小：避免单事务过大长期占用连接 */
+const UPSERT_BATCH = 100;
+
 /** HN raw JSON → HnItem 行字段（缺省 undefined 交由 Prisma 忽略） */
 function rowFields(raw: HnRawItem) {
   if (raw === null) return { missing: true };
@@ -44,15 +47,19 @@ export async function upsertItems(items: ItemUpsert[]): Promise<void> {
     for (const it of items) memItems.set(it.id, { raw: it.raw, fetchedAt: now });
     return;
   }
-  await client.$transaction(
-    items.map((it) =>
-      client.hnItem.upsert({
-        where: { id: it.id },
-        create: { id: it.id, fetchedAt: new Date(), ...rowFields(it.raw) },
-        update: { fetchedAt: new Date(), ...rowFields(it.raw) },
-      }),
-    ),
-  );
+  const now = new Date();
+  for (let i = 0; i < items.length; i += UPSERT_BATCH) {
+    const batch = items.slice(i, i + UPSERT_BATCH);
+    await client.$transaction(
+      batch.map((it) =>
+        client.hnItem.upsert({
+          where: { id: it.id },
+          create: { id: it.id, fetchedAt: now, ...rowFields(it.raw) },
+          update: { fetchedAt: now, ...rowFields(it.raw) },
+        }),
+      ),
+    );
+  }
 }
 
 export async function readItems(ids: number[]): Promise<Map<number, ItemRow>> {
@@ -110,7 +117,7 @@ export async function oldestFetchedStories(limit: number, minAgeMinutes: number)
   const client = await db();
   if (!client) {
     return [...memItems.entries()]
-      .filter(([, v]) => (v.raw as { type?: unknown })?.type === 'story' && v.fetchedAt < cutoff)
+      .filter(([, v]) => v.raw !== null && (v.raw as { type?: unknown })?.type === 'story' && v.fetchedAt < cutoff)
       .sort((a, b) => a[1].fetchedAt.getTime() - b[1].fetchedAt.getTime())
       .slice(0, limit)
       .map(([id]) => id);
