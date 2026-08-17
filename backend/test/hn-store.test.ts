@@ -5,7 +5,7 @@ describe('hn-store (in-memory)', () => {
   beforeEach(() => {
     vi.resetModules();
     delete process.env.DATABASE_URL;
-    delete process.env.NODE_ENV;
+    vi.stubEnv('NODE_ENV', 'test');
   });
 
   it('upsert 后按 id 读回，保持插入语义', async () => {
