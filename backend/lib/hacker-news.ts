@@ -1,6 +1,7 @@
 // backend/lib/hacker-news.ts
 import './proxy';
 import { readItems, readStoryList, saveStoryList, upsertItems } from './hn-store';
+import { hnHealth } from './hn-health';
 
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
 const listFreshSeconds = 180;      // 列表 fresh 3min
@@ -15,7 +16,7 @@ function baseUrl(): string {
   return (process.env.HACKER_NEWS_API_URL?.trim() || defaultBaseUrl).replace(/\/$/, '');
 }
 
-/** 上游拉取：配置源优先，失败回退直连 Firebase。（T8 会在此埋健康统计） */
+/** 上游拉取：配置源优先，失败回退直连 Firebase。埋点 hn-health（T8）。 */
 export async function fetchJson<T>(path: string): Promise<T> {
   const candidates = [...new Set([baseUrl(), defaultBaseUrl])];
   let lastError: Error = new Error('hacker_news_unavailable');
@@ -25,9 +26,20 @@ export async function fetchJson<T>(path: string): Promise<T> {
         signal: AbortSignal.timeout(fetchTimeoutMs),
         headers: { accept: 'application/json' },
       });
-      if (!response.ok) throw new Error(`hacker_news_http_${response.status}`);
+      if (!response.ok) {
+        const retryAfter = Number(response.headers.get('retry-after'));
+        hnHealth.noteRequest(false, {
+          status: response.status,
+          retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+        });
+        throw new Error(`hacker_news_http_${response.status}`);
+      }
+      hnHealth.noteRequest(true);
       return await response.json() as T;
     } catch (error) {
+      if (!(error instanceof Error) || !error.message.startsWith('hacker_news_http_')) {
+        hnHealth.noteRequest(false); // 超时/网络错误
+      }
       lastError = error instanceof Error ? error : new Error('hacker_news_unavailable');
       console.warn(`[geekread] HN fetch failed via ${base}: ${lastError.message}`);
     }
@@ -72,7 +84,12 @@ export async function fetchStoryIds(type: 'top' | 'latest'): Promise<{
   }
 }
 
+// 后台刷新 in-flight 去重：同 key 并发刷新只发一次（防刷新风暴）
+const refreshingLists = new Set<string>();
+
 async function refreshStoryListInBackground(type: 'top' | 'latest'): Promise<void> {
+  if (refreshingLists.has(type)) return;
+  refreshingLists.add(type);
   try {
     const path = type === 'top' ? '/topstories.json' : '/newstories.json';
     const ids = await fetchJson<number[]>(path);
@@ -81,6 +98,8 @@ async function refreshStoryListInBackground(type: 'top' | 'latest'): Promise<voi
     }
   } catch {
     // 后台刷新失败不影响用户（下次请求再用 stale）
+  } finally {
+    refreshingLists.delete(type);
   }
 }
 
@@ -103,12 +122,19 @@ async function resolveItem(id: number): Promise<ItemOutcome> {
   return { item, cached: false, stale: false };
 }
 
+// 后台刷新 in-flight 去重：同 id 并发刷新只发一次（防刷新风暴）
+const refreshingItems = new Set<number>();
+
 async function refreshItemInBackground(id: number): Promise<void> {
+  if (refreshingItems.has(id)) return;
+  refreshingItems.add(id);
   try {
     const item = await fetchJson<unknown>(`/item/${id}.json`);
     if (isValidItem(item)) await upsertItems([{ id, raw: item }]);
   } catch {
     // 失败保留旧值
+  } finally {
+    refreshingItems.delete(id);
   }
 }
 
