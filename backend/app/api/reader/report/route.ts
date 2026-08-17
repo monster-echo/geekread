@@ -1,13 +1,13 @@
+// backend/app/api/reader/report/route.ts
 import { errorResponse, json } from '../../../../lib/http';
-import { redis } from '../../../../lib/storage';
+import { saveReport } from '../../../../lib/report-store';
 
 const REASONS = new Set(['false_info', 'nsfw', 'spam', 'illegal', 'other']);
 
 /**
  * POST /api/reader/report { storyId, commentId, reason, text? }
  *
- * 内容举报：接收 HN 评论的举报并存入 Redis 列表（geekread:reports）。
- * 用于内容合规（UGC 评论 + AI 翻译场景下的违规反馈入口）。
+ * 内容举报：接收 HN 评论的举报并落库（Postgres Report 表）。
  */
 export async function POST(request: Request): Promise<Response> {
   const installId = request.headers.get('x-install-id');
@@ -16,11 +16,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   let payload: unknown;
-  try {
-    payload = await request.json();
-  } catch {
-    return errorResponse('invalid_request', 400);
-  }
+  try { payload = await request.json(); } catch { return errorResponse('invalid_request', 400); }
+
   const storyId = Number((payload as { storyId?: unknown }).storyId);
   const commentId = Number((payload as { commentId?: unknown }).commentId);
   const reason = String((payload as { reason?: unknown }).reason ?? '');
@@ -30,10 +27,10 @@ export async function POST(request: Request): Promise<Response> {
   const raw = (payload as { text?: unknown }).text;
   const text = typeof raw === 'string' ? raw.slice(0, 500) : '';
 
-  const entry = JSON.stringify({ storyId, commentId, reason, text, installId, ts: Date.now() });
-  const client = await redis();
-  if (client) {
-    await client.rPush('geekread:reports', entry);
+  try {
+    await saveReport({ storyId, commentId, reason, text, installId, ts: Date.now() });
+  } catch {
+    // 落库失败不阻断用户反馈（旧版 Redis 失败同样静默）
   }
   return json({ ok: true });
 }

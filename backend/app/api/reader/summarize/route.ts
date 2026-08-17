@@ -1,6 +1,6 @@
 import { errorResponse, json, requireString, safeErrorStatus } from '../../../../lib/http';
 import { summarizeWithModel } from '../../../../lib/model';
-import { cacheSummary, getCachedSummary } from '../../../../lib/storage';
+import { cacheSummary, getCachedSummary } from '../../../../lib/cache-store';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
 const MAX_TITLE = 300;

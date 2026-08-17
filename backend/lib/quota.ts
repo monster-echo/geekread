@@ -1,5 +1,5 @@
 import { env } from './env';
-import { reserveTranslation } from './storage';
+import { reserveTranslation } from './quota-store';
 
 export function limitFor(isPro: boolean): number {
   return isPro ? env().proDailyTranslations : env().freeDailyTranslations;

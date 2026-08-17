@@ -36,7 +36,7 @@ describe('POST /api/translate', () => {
   });
 
   it('serves cached translation without consuming quota', async () => {
-    const { cacheTranslation } = await import('../../lib/storage.js');
+    const { cacheTranslation } = await import('../../lib/cache-store.js');
     await cacheTranslation('hello', 'zh-Hans', '你好');
     const fetchSpy = vi.fn();
     globalThis.fetch = fetchSpy as unknown as typeof fetch;

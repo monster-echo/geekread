@@ -1,7 +1,7 @@
 import { hasProEntitlement } from '../../../../lib/entitlement';
 import { errorResponse, json } from '../../../../lib/http';
 import { limitFor, today } from '../../../../lib/quota';
-import { peekTranslation } from '../../../../lib/storage';
+import { peekTranslation } from '../../../../lib/quota-store';
 
 export async function GET(request: Request): Promise<Response> {
   const installId = request.headers.get('x-install-id');
