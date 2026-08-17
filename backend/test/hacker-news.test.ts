@@ -19,6 +19,8 @@ describe('hacker-news', () => {
     vi.resetModules();
     delete process.env.REDIS_URL;
     delete process.env.HACKER_NEWS_API_URL;
+    delete process.env.DATABASE_URL;
+    vi.stubEnv('NODE_ENV', 'test');
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -47,14 +49,14 @@ describe('hacker-news', () => {
     expect(r.items.map((x) => x?.id)).toEqual([1, 2, undefined]);
   });
 
-  it('serves cached items on upstream failure (stale)', async () => {
+  it('serves stored items on upstream failure (stale)', async () => {
     mockFetch({ '/item/9.json': { id: 9, title: 'cached' } });
     const { fetchItems } = await import('../lib/hacker-news.js');
-    const { setJsonCache } = await import('../lib/storage.js');
+    const { __testBackdateItem } = await import('../lib/hn-store.js');
     const first = await fetchItems([9]);
     expect(first.items[0]).toEqual({ id: 9, title: 'cached' });
-    // Force the cached entry past its fresh window so fetchItem must retry upstream.
-    await setJsonCache('hn:item:9', { id: 9, title: 'cached' }, 0, 3600);
+    // fetchedAt 回拨 2 小时 → 超过 item fresh 窗口，必须重试上游
+    await __testBackdateItem(9, 120);
     mockFetch({});
     const second = await fetchItems([9]);
     expect(second.items[0]).toEqual({ id: 9, title: 'cached' });

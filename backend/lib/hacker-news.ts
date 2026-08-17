@@ -1,13 +1,11 @@
+// backend/lib/hacker-news.ts
 import './proxy';
-import { getJsonCache, setJsonCache } from './storage';
+import { readItems, readStoryList, saveStoryList, upsertItems } from './hn-store';
 
 const defaultBaseUrl = 'https://hacker-news.firebaseio.com/v0';
-const listFreshTtlSeconds = 180;
-const listStaleTtlSeconds = 1200;
-const itemFreshTtlSeconds = 900;
-const itemStaleTtlSeconds = 7200;
-// HN 冷拉较慢：提高并发（20 一批拉完）并缩短超时（慢请求快速失败），
-// 避免无缓存首次加载卡十几秒。
+const listFreshSeconds = 180;      // 列表 fresh 3min
+const listStaleSeconds = 1200;     // 超 20min 同步刷新一次
+const itemFreshSeconds = 900;      // 条目 fresh 15min
 const fetchTimeoutMs = 8_000;
 const fetchConcurrency = 20;
 
@@ -17,9 +15,8 @@ function baseUrl(): string {
   return (process.env.HACKER_NEWS_API_URL?.trim() || defaultBaseUrl).replace(/\/$/, '');
 }
 
-// 优先用配置的数据源（如 HACKER_NEWS_API_URL 指向 proxy.0x2a.top 加速），
-// 失败自动回退直连 Firebase。
-async function fetchJson<T>(path: string): Promise<T> {
+/** 上游拉取：配置源优先，失败回退直连 Firebase。（T8 会在此埋健康统计） */
+export async function fetchJson<T>(path: string): Promise<T> {
   const candidates = [...new Set([baseUrl(), defaultBaseUrl])];
   let lastError: Error = new Error('hacker_news_unavailable');
   for (const base of candidates) {
@@ -38,62 +35,80 @@ async function fetchJson<T>(path: string): Promise<T> {
   throw lastError;
 }
 
+function isValidItem(value: unknown): value is HackerNewsItem | null {
+  if (value === null) return true;
+  return typeof value === 'object' && !Array.isArray(value);
+}
+
 export async function fetchStoryIds(type: 'top' | 'latest'): Promise<{
   ids: number[];
   cached: boolean;
   stale: boolean;
 }> {
-  const cacheKey = `hn:stories:${type}`;
-  const cached = await getJsonCache<number[]>(cacheKey);
-  if (cached && !cached.stale) return { ids: cached.value, cached: true, stale: false };
-  // SWR：fresh 过期但 stale 内 → 先返回旧值（秒出），后台异步刷新
-  if (cached && cached.stale) {
-    refreshStoryIdsInBackground(type).catch(() => {});
-    return { ids: cached.value, cached: true, stale: true };
-  }
+  const stored = await readStoryList(type);
+  const ageSeconds = stored ? (Date.now() - stored.fetchedAt.getTime()) / 1000 : Infinity;
 
+  // fresh：直接返回，不碰上游
+  if (stored && ageSeconds <= listFreshSeconds) {
+    return { ids: stored.ids, cached: true, stale: false };
+  }
+  // stale 窗口内：返回旧值 + 后台刷新
+  if (stored && ageSeconds <= listStaleSeconds) {
+    refreshStoryListInBackground(type).catch(() => {});
+    return { ids: stored.ids, cached: true, stale: true };
+  }
+  // 无数据或超 stale：同步刷新一次，失败时有旧值返旧值
   try {
     const path = type === 'top' ? '/topstories.json' : '/newstories.json';
     const ids = await fetchJson<number[]>(path);
     if (!Array.isArray(ids) || ids.some((id) => !Number.isInteger(id))) {
       throw new Error('hacker_news_invalid_response');
     }
-    await setJsonCache(cacheKey, ids, listFreshTtlSeconds, listStaleTtlSeconds);
+    await saveStoryList(type, ids);
     return { ids, cached: false, stale: false };
   } catch (error) {
-    if (cached) return { ids: cached.value, cached: true, stale: true };
+    if (stored) return { ids: stored.ids, cached: true, stale: true };
     throw error;
   }
 }
 
-/** SWR 后台刷新：拉最新列表写入缓存，不影响用户请求（失败静默）。 */
-async function refreshStoryIdsInBackground(type: 'top' | 'latest'): Promise<void> {
+async function refreshStoryListInBackground(type: 'top' | 'latest'): Promise<void> {
   try {
     const path = type === 'top' ? '/topstories.json' : '/newstories.json';
     const ids = await fetchJson<number[]>(path);
     if (Array.isArray(ids) && ids.every((id) => Number.isInteger(id))) {
-      await setJsonCache(`hn:stories:${type}`, ids, listFreshTtlSeconds, listStaleTtlSeconds);
+      await saveStoryList(type, ids);
     }
   } catch {
     // 后台刷新失败不影响用户（下次请求再用 stale）
   }
 }
 
-async function fetchItem(id: number): Promise<{ item: HackerNewsItem | null; cached: boolean; stale: boolean }> {
-  const cacheKey = `hn:item:${id}`;
-  const cached = await getJsonCache<HackerNewsItem | null>(cacheKey);
-  if (cached && !cached.stale) return { item: cached.value, cached: true, stale: false };
+type ItemOutcome = { item: HackerNewsItem | null; cached: boolean; stale: boolean };
 
+async function resolveItem(id: number): Promise<ItemOutcome> {
+  const rows = await readItems([id]);
+  const hit = rows.get(id);
+  if (hit) {
+    const ageSeconds = (Date.now() - hit.fetchedAt.getTime()) / 1000;
+    if (ageSeconds <= itemFreshSeconds) return { item: hit.raw, cached: true, stale: false };
+    // 超 fresh：返回旧值 + 后台刷新（fire-and-forget）
+    refreshItemInBackground(id).catch(() => {});
+    return { item: hit.raw, cached: true, stale: true };
+  }
+  // 未落库（长尾）：回源一次并 upsert，此后永久本地
+  const item = await fetchJson<unknown>(`/item/${id}.json`);
+  if (!isValidItem(item)) throw new Error('hacker_news_invalid_response');
+  await upsertItems([{ id, raw: item }]);
+  return { item, cached: false, stale: false };
+}
+
+async function refreshItemInBackground(id: number): Promise<void> {
   try {
-    const item = await fetchJson<HackerNewsItem | null>(`/item/${id}.json`);
-    if (item !== null && (typeof item !== 'object' || Array.isArray(item))) {
-      throw new Error('hacker_news_invalid_response');
-    }
-    await setJsonCache(cacheKey, item, itemFreshTtlSeconds, itemStaleTtlSeconds);
-    return { item, cached: false, stale: false };
-  } catch (error) {
-    if (cached) return { item: cached.value, cached: true, stale: true };
-    throw error;
+    const item = await fetchJson<unknown>(`/item/${id}.json`);
+    if (isValidItem(item)) await upsertItems([{ id, raw: item }]);
+  } catch {
+    // 失败保留旧值
   }
 }
 
@@ -103,7 +118,7 @@ export async function fetchItems(ids: number[]): Promise<{
   stale: boolean;
 }> {
   const uniqueIds = [...new Set(ids)];
-  const results = new Map<number, Awaited<ReturnType<typeof fetchItem>>>();
+  const results = new Map<number, ItemOutcome>();
   let nextIndex = 0;
 
   async function worker(): Promise<void> {
@@ -111,7 +126,7 @@ export async function fetchItems(ids: number[]): Promise<{
       const index = nextIndex++;
       const id = uniqueIds[index];
       if (id === undefined) return;
-      results.set(id, await fetchItem(id));
+      results.set(id, await resolveItem(id));
     }
   }
 
