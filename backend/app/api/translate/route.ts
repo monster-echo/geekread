@@ -84,7 +84,8 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    await Promise.all(Array.from({ length: Math.min(4, entries.length) }, () => worker()));
+    // 并发 8：20 条/批 × 单条 ~3.8s，4 并发要 ~19s 会触发客户端 15s 超时；8 并发 ~11s
+  await Promise.all(Array.from({ length: Math.min(8, entries.length) }, () => worker()));
     return json({ results, ...(remaining === undefined ? {} : { remainingTranslations: remaining }) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';

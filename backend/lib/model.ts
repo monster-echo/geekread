@@ -53,6 +53,9 @@ export async function translateWithModel(text: string, targetLanguageTag: string
     },
     body: JSON.stringify({
       model: requiredEnvironment('MODEL_NAME'),
+      // DeepSeek v4 思考模式默认开启（effort=high），翻译场景会先输出长思维链，
+      // 长文本耗时 20s+ 触发超时；翻译不需要推理，显式关闭（旧模型忽略此参数）。
+      thinking: { type: 'disabled' },
       temperature: 0.1,
       messages: [
         {
@@ -98,6 +101,8 @@ export async function summarizeWithModel(
     },
     body: JSON.stringify({
       model: requiredEnvironment('MODEL_NAME'),
+      // 摘要同样关闭思考模式：20-50 字 takeaway 不需要思维链（旧模型忽略此参数）。
+      thinking: { type: 'disabled' },
       temperature: 0.6,
       messages: [
         {

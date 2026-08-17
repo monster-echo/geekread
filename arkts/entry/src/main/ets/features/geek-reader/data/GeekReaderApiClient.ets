@@ -66,7 +66,8 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
       extraData: body,
       expectDataType: http.HttpDataType.STRING,
       connectTimeout: 8000,
-      readTimeout: 15000,
+      // 翻译/摘要大批次（20条/批 ÷ 后端并发）冷缓存可达 ~19s，15s 会误杀
+      readTimeout: 30000,
     })
     const text = String(response.result)
     if (response.responseCode < 200 || response.responseCode >= 300) {
