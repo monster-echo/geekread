@@ -2,7 +2,6 @@ export type Env = {
   modelApiUrl: string;
   modelApiKey: string;
   modelName: string;
-  redisUrl: string;
   freeDailyTranslations: number;
   proDailyTranslations: number;
   entitlementSigningSecret: string;
@@ -25,7 +24,6 @@ export function reloadEnv(): Env {
     modelApiUrl: str('MODEL_API_URL'),
     modelApiKey: str('MODEL_API_KEY'),
     modelName: str('MODEL_NAME'),
-    redisUrl: str('REDIS_URL'),
     freeDailyTranslations: num('FREE_DAILY_TRANSLATIONS', 20),
     proDailyTranslations: num('PRO_DAILY_TRANSLATIONS', 500),
     entitlementSigningSecret: str('ENTITLEMENT_SIGNING_SECRET'),
