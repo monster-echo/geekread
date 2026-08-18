@@ -1,4 +1,10 @@
-# backend/docker-compose.yml
+# backend/docker-compose.yml —— 全新机器独立部署（自带 PG 实例 + 发布宿主端口）。
+# 生产服务器（tengxun1）不用这个文件，用 compose.server.yml + .env.production
+# （共享 global_network + 共享 postgres，zhongbei-auth 同款惯例）。
+#
+# 用法：
+#   cp .env.example .env   # 填 DATABASE_URL、MODEL_*、ENTITLEMENT_SIGNING_SECRET、POSTGRES_PASSWORD
+#   docker compose up -d --build
 services:
   postgres:
     image: docker.m.daocloud.io/library/postgres:16-alpine
@@ -13,9 +19,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+    restart: unless-stopped
 
   backend:
     build: .
+    image: geekread-backend:latest
+    container_name: geekread-backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,6 +38,7 @@ services:
       WARM_CACHE_TOKEN: ${WARM_CACHE_TOKEN:-}
     ports:
       - "8787:8787"
+    restart: unless-stopped
 
 volumes:
   pgdata:

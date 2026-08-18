@@ -1,0 +1,14 @@
+# 构建上下文瘦身 + 防密钥进镜像层
+node_modules
+.next
+test
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+review_*.md
+review_*.json
+docker-compose.yml
+compose.server.yml
+.dockerignore
+.DS_Store
