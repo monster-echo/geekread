@@ -1,11 +1,13 @@
 # geekread-backend server 服务（compose 管理，同 zhongbei-auth 惯例）。
 # 连 external 的 global_network（共享 postgres/caddy 所在网络）。
-# 用法：cd <本目录> && docker compose -f compose.server.yml up -d --build
+# 服务器上不放源码：镜像由本地构建后交付——
+#   docker build --platform linux/amd64 -t geekread-backend:latest backend/
+#   docker save geekread-backend:latest | gzip | ssh tengxun1 'gunzip | docker load'
+#   ssh tengxun1 'cd /home/echo/workspace/geekread-backend && docker compose -f compose.server.yml up -d'
 # 密钥在 .env.production（600 权限，不入 git）。
 services:
   backend:
     image: geekread-backend:latest
-    build: .
     restart: unless-stopped
     # caddy 按容器名路由，名字保持不变；8787 仅容器网络内可达
     container_name: geekread-backend
