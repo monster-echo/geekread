@@ -3,7 +3,7 @@
 # 服务器上不放源码：镜像由本地构建后交付——
 #   docker build --platform linux/amd64 -t geekread-backend:latest backend/
 #   docker save geekread-backend:latest | gzip | ssh tengxun1 'gunzip | docker load'
-#   ssh tengxun1 'cd /home/echo/workspace/geekread-backend && docker compose -f compose.server.yml up -d'
+#   ssh tengxun1 'cd /home/echo/workspace/geekread-backend && docker compose up -d'
 # 密钥在 .env.production（600 权限，不入 git）。
 services:
   backend:
