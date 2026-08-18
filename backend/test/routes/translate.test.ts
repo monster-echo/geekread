@@ -35,6 +35,24 @@ describe('POST /api/translate', () => {
     expect(body.remainingTranslations).toBe(19);
   });
 
+  it('empty-text entry returns empty translation without LLM/quota (batch not poisoned)', async () => {
+    globalThis.fetch = llm({});
+    const { POST } = await import('../../app/api/translate/route.js');
+    const res = await POST(new Request('http://localhost/api/translate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-install-id': 'c-empty' },
+      body: JSON.stringify({
+        targetLanguage: 'zh-Hans',
+        // 混批：空文本（链接型评论清洗后）+ 正常文本，老客户端整批不再 400
+        entries: [{ key: 'k0', text: '   ' }, { key: 'k1', text: 'hello' }],
+      }),
+    }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.results[0]).toMatchObject({ key: 'k0', translation: '', cached: true });
+    expect(body.results[1]).toMatchObject({ key: 'k1', translation: 'TRANSLATED' });
+  });
+
   it('serves cached translation without consuming quota', async () => {
     const { cacheTranslation } = await import('../../lib/cache-store.js');
     await cacheTranslation('hello', 'zh-Hans', '你好');

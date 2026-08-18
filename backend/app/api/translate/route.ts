@@ -37,7 +37,11 @@ export async function POST(request: Request): Promise<Response> {
     const entries: Entry[] = rawEntries.map((v) => {
       if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('invalid_request');
       const e = v as { key?: unknown; text?: unknown };
-      return { key: requireString(e.key, 256), text: requireString(e.text, 12_000) };
+      // 空文本不再 400 整批（链接/图片型评论 HTML 清洗后为空）：按条目返回空翻译，
+      // 不调 LLM 不扣配额——保护老版本客户端的整批请求不被一条空评论毒死。
+      const text = typeof e.text === 'string' ? e.text.trim().slice(0, 12_000) : null;
+      if (text === null) throw new Error('invalid_request');
+      return { key: requireString(e.key, 256), text };
     });
     if (entries.reduce((n, e) => n + e.text.length, 0) > MAX_TOTAL_CHARS) throw new Error('invalid_request');
 
@@ -52,6 +56,10 @@ export async function POST(request: Request): Promise<Response> {
         const entry = entries[index];
         if (!entry) return;
         try {
+          if (entry.text.length === 0) {
+            results[index] = { key: entry.key, translation: '', cached: true };
+            continue;
+          }
           const cached = await getCachedTranslation(entry.text, targetLanguage);
           if (cached) { results[index] = { key: entry.key, translation: cached, cached: true }; continue; }
           if (isFree) {

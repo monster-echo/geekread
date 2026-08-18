@@ -155,6 +155,9 @@ function flush(): void {
 }
 
 export function translate(text: string, lang: TargetLanguage, free: boolean = false): Promise<string> {
+  // 空文本（链接/图片型评论 HTML 清洗后为空）：无物可译，直接返回空串，
+  // 不进队列不发请求（曾污染整批触发服务端 400）。
+  if (text.trim().length === 0) return Promise.resolve('')
   // 配额熔断：非免翻译直接拒绝，不发请求；组件 catch 到 quota_exceeded 显示升级 CTA。
   // 免费通道（标题/正文/精华评论）不扣配额，不受闸门影响。
   if (!free && quotaGateActive()) {

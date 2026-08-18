@@ -119,8 +119,10 @@ export struct ImmersiveTranslation {
     } catch (e) {
       // 库未就绪时静默降级（富文本用默认样式）
     }
-    // 需要译文（translation / both）时自动触发，不点击。
-    if (this.displayMode !== 'original' && this.lang !== null && this.result.length === 0) {
+    // 需要译文（translation / both）时自动触发，不点击。清洗后为空的文本不触发
+    // （链接/图片型评论没有可译内容，避免空转圈）。
+    if (this.displayMode !== 'original' && this.lang !== null &&
+      this.result.length === 0 && this.clean().trim().length > 0) {
       this.doTranslate()
     }
   }
