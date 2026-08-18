@@ -14,6 +14,7 @@ import { AppTelemetrySink } from '../telemetry/AppTelemetrySink'
 import { guardRoute } from '../navigation/RouteGuard'
 import { initAppStrings } from '../localization/AppStrings'
 import { AppColors } from '../theme/AppTokens'
+import { resetQuotaGate } from '../features/geek-reader/application/TranslationCache'
 
 @Observed
 export class AppStore {
@@ -186,9 +187,15 @@ export class AppStore {
         ? ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT
         : ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET
     const application = this.context.getApplicationContext()
-    application.setColorMode(colorMode)
-    application.setLanguage(language)
-    application.setFontSizeScale(textScale)
+    // setColorMode/setLanguage 声明可抛（错误码 401/801 等）；偏好应用是尽力而为，
+    // 单项失败不应中断启动流程（后续 setFontSizeScale/apiClient 同理一起兜住）。
+    try {
+      application.setColorMode(colorMode)
+      application.setLanguage(language)
+      application.setFontSizeScale(textScale)
+    } catch (e) {
+      console.error(`[geekread][prefs] apply failed: ${e instanceof Error ? e.message : String(e)}`)
+    }
     apiClient.setLanguage(language)
   }
 
@@ -646,6 +653,8 @@ export class AppStore {
       this.purchaseStatus =
         verified.status === OrderStatus.Success ? PurchaseStatus.Success : PurchaseStatus.Failed
       if (verified.status === OrderStatus.Success) {
+        // 购买 Pro 成功：配额上限提升（20→500），解除客户端翻译配额熔断
+        resetQuotaGate()
         // Best-effort membership refresh: re-bootstrap so the user tier reflects
         // the purchase. `initialize` needs the UIAbilityContext captured at boot.
         const context = this.context

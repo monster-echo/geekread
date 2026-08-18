@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 .dart_tool/
 build/
 node_modules/
@@ -21,3 +24,6 @@ material/
 # arkts-code-check 工具产物
 review_report.md
 review_results.json
+
+# arkts build artifacts
+arkts/entry/.arkts/

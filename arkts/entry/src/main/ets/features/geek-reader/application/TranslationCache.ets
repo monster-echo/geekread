@@ -26,6 +26,49 @@ let incoming: Pending[] = []
 let queue: Pending[] = []
 let inflightRequests: number = 0
 let timer: number = -1
+// 配额熔断闸门：非免通道（评论翻译）配额用尽后本地熔断，translate() 直接
+// 拒绝 quota_exceeded，不再发起请求（省网络往返，组件秒显升级 CTA）。
+// 服务端配额按 UTC 日重置（quota.ts today()），闸门按 UTC 日期存续，跨日自动失效；
+// Pro 购买成功 / 列表页配额查询 remaining>0 时调用 resetQuotaGate() 主动解除。
+let quotaExhaustedDay: string = ''
+
+function utcToday(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function quotaGateActive(): boolean {
+  if (quotaExhaustedDay.length === 0) return false
+  if (utcToday() !== quotaExhaustedDay) {
+    quotaExhaustedDay = '' // 跨 UTC 日，服务端配额已重置
+    return false
+  }
+  return true
+}
+
+/** 配额恢复（Pro 购买成功、列表页配额查询 remaining>0）时解除熔断。 */
+export function resetQuotaGate(): void {
+  quotaExhaustedDay = ''
+}
+
+function tripQuotaGate(): void {
+  if (quotaGateActive()) return
+  quotaExhaustedDay = utcToday()
+  // 队列/窗口里未发出的非免条目直接判配额用尽；免费条目（标题/正文）不受影响
+  const keptQueue: Pending[] = []
+  for (let i = 0; i < queue.length; i++) {
+    const it = queue[i]
+    if (it.free) keptQueue.push(it)
+    else it.reject(new Error('quota_exceeded'))
+  }
+  queue = keptQueue
+  const keptIncoming: Pending[] = []
+  for (let i = 0; i < incoming.length; i++) {
+    const it = incoming[i]
+    if (it.free) keptIncoming.push(it)
+    else it.reject(new Error('quota_exceeded'))
+  }
+  incoming = keptIncoming
+}
 
 function cacheKey(lang: TargetLanguage, text: string): string {
   return `${lang}\n${text}`
@@ -67,12 +110,15 @@ async function dispatchChunk(chunk: Pending[]): Promise<void> {
   const req: TranslateRequest = { targetLanguage: lang, entries, free: chunk[0].free === true }
   try {
     const res: TranslateResponse = await translateBatch(req)
+    // 配额熔断：remaining=0 或任一条目 quota_exceeded 即触发（仅非免响应携带）
+    if (res.remainingTranslations === 0) tripQuotaGate()
     for (let i = 0; i < chunk.length; i++) {
       const r = res.results[i]
       if (r !== undefined && r.translation !== undefined && r.translation.length > 0) {
         cache.set(cacheKey(lang, chunk[i].text), r.translation)
         chunk[i].resolve(r.translation)
       } else {
+        if (r?.error === 'quota_exceeded') tripQuotaGate()
         chunk[i].reject(new Error(r?.error ?? 'translation_failed'))
       }
     }
@@ -109,6 +155,11 @@ function flush(): void {
 }
 
 export function translate(text: string, lang: TargetLanguage, free: boolean = false): Promise<string> {
+  // 配额熔断：非免翻译直接拒绝，不发请求；组件 catch 到 quota_exceeded 显示升级 CTA。
+  // 免费通道（标题/正文/精华评论）不扣配额，不受闸门影响。
+  if (!free && quotaGateActive()) {
+    return Promise.reject(new Error('quota_exceeded'))
+  }
   const k = cacheKey(lang, text)
   const hit = cache.get(k)
   if (hit !== undefined) return Promise.resolve(hit)

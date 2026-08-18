@@ -34,6 +34,9 @@ interface DialogIndex {
 // 懒渲染（ImmersiveTranslation 内 setLazyRender）把单帧爆发切小。
 const RENDER_BATCH = 10
 
+// LLM 摘要开关：暂关（质量与耗时待优化），恢复改 true。
+const SUMMARY_ENABLED = false
+
 @Component
 export struct StoryDetailPage {
   @ObjectLink store: AppStore
@@ -320,19 +323,24 @@ export struct StoryDetailPage {
     }
 
     console.log(`[geekread][card] after pickTopComments=${this.topComments.length} tree=${this.tree.length}`)
-    // LLM 摘要：英文评论给模型，输出目标语言摘要（lang 为 null 时用英文）
-    try {
-      this.summary = await summarizeStory({
-        storyId: this.story.id,
-        title: this.story.title,
-        text: this.story.text,
-        comments: enComments,
-        targetLanguage: lang ?? 'en',
-      })
-    } catch (e) {
-      this.summary = ''
-      const msg = e instanceof Error ? e.message : String(e)
-      telemetry.report(new Error(`summarize_failed: ${msg}`))
+    // LLM 摘要暂关（质量与耗时待优化，恢复改 SUMMARY_ENABLED = true 即可）：
+    // 不再调 summarizeStory，仅保留精选评论卡片
+    this.summary = ''
+    if (SUMMARY_ENABLED) {
+      // LLM 摘要：英文评论给模型，输出目标语言摘要（lang 为 null 时用英文）
+      try {
+        this.summary = await summarizeStory({
+          storyId: this.story.id,
+          title: this.story.title,
+          text: this.story.text,
+          comments: enComments,
+          targetLanguage: lang ?? 'en',
+        })
+      } catch (e) {
+        this.summary = ''
+        const msg = e instanceof Error ? e.message : String(e)
+        telemetry.report(new Error(`summarize_failed: ${msg}`))
+      }
     }
     this.timingSummaryMs = Date.now() - cardStart
     // 摘要完成后补报一次（含 summary_ms；tree 阶段已报过的不含）

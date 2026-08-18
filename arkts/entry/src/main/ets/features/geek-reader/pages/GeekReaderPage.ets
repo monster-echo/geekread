@@ -6,6 +6,7 @@ import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
 import { localized, appString, AppString } from '../../../localization/AppStrings'
 import { fetchQuota, fetchStories, fetchStoriesResolved, ReaderQuota } from '../data/GeekReaderApiClient'
+import { resetQuotaGate } from '../application/TranslationCache'
 import { Story } from '../domain/Models'
 import { telemetry } from '../../../telemetry/Telemetry'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
@@ -112,6 +113,8 @@ export struct GeekReaderPage {
   private async loadQuota(): Promise<void> {
     try {
       this.quota = await fetchQuota()
+      // 服务端确认配额有剩余时解除客户端熔断（如跨日刷新、服务端配额变化）
+      if (this.quota.remaining > 0) resetQuotaGate()
     } catch (e) {
       this.quota = null
     }
