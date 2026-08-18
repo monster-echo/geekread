@@ -23,21 +23,7 @@
         "name": "release"
       }
     ],
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "/Volumes/MacMiniDisk/Users/echo/.ohos/config/default_arkts_woivImW7iKLWpczi8EGvSu29x07QztVfPqdN7xboSBE=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B6ED225D11B5332551CE5BF0D2526F173C857B3C04F790AF7C5660878FC9990ADA73CDAF66FC782",
-          "profile": "/Volumes/MacMiniDisk/Users/echo/.ohos/config/default_arkts_woivImW7iKLWpczi8EGvSu29x07QztVfPqdN7xboSBE=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "/Volumes/MacMiniDisk/Users/echo/.ohos/config/default_arkts_woivImW7iKLWpczi8EGvSu29x07QztVfPqdN7xboSBE=.p12",
-          "storePassword": "0000001B99E37279BA38E5B70FAE0EA204BA5D6FA59C7770B3F7259A943BF71E0B775287449E3BC2A92A69"
-        }
-      }
-    ]
+    "signingConfigs": []
   },
   "modules": [
     {
