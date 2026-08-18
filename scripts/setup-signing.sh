@@ -42,7 +42,7 @@ case "$MODE" in
         plain=$(echo "${fp#sha256 Fingerprint=}" | tr -d ':' | tr 'A-F' 'a-f')
         echo "$kind: $plain"
       else
-        echo "$kind: 未找到 $cer（先按 docs/signing.md 完成 AGC 步骤）"
+        echo "$kind: 未找到 ${cer}（先按 docs/signing.md 完成 AGC 步骤）"
       fi
     done
     exit 0
