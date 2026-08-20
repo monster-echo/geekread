@@ -5,6 +5,7 @@ import { AppStore } from '../state/AppStore'
 import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { AppIcon, AppIconName } from '../design_system/AppIcon'
 import { AuthMode, AuthPage } from './AuthPage'
+import { LoginPage } from './LoginPage'
 import { StateGalleryPage } from './GenericPage'
 import { CouponsPage, InvitePage, StatisticsPage } from './ProfileDataPages'
 import { OrdersPage, SessionsPage } from './AccountDataPages'
@@ -106,7 +107,9 @@ struct Index {
       NavDestination() { ChoicePreferencePage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Storage}` || name === `route_${AppRoute.Permissions}`) {
       NavDestination() { SettingsUtilityPage({ store: this.store, route: this.store.route }) }.title(this.choiceTitle()).hideTitleBar(false)
-    } else if (name === `route_${AppRoute.SignIn}` || name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
+    } else if (name === `route_${AppRoute.SignIn}`) {
+      NavDestination() { LoginPage({ store: this.store }) }.title('登录').hideTitleBar(false)
+    } else if (name === `route_${AppRoute.SignUp}` || name === `route_${AppRoute.PhoneSignIn}` || name === `route_${AppRoute.ForgotPassword}` || name === `route_${AppRoute.VerifyEmail}` || name === `route_${AppRoute.ResetPassword}`) {
       NavDestination() { AuthPage({ store: this.store, mode: this.authMode() }) }.title(this.authTitle()).hideTitleBar(false)
     } else if (name === `route_${AppRoute.Privacy}` || name === `route_${AppRoute.NotificationSettings}` || name === `route_${AppRoute.General}` || name === `route_${AppRoute.DeleteAccount}`) {
       // 开关类设置页（隐私/通知/通用/注销）

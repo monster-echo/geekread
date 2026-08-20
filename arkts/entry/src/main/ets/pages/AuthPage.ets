@@ -3,9 +3,11 @@ import { AppStore } from '../state/AppStore'
 import { AppButton, PageHeader } from '../design_system/Components'
 import { AppColors, AppRadii, AppSpacing } from '../theme/AppTokens'
 import { SocialAuthSheet } from './SocialAuthSheet'
-import { authentication, LoginPanel, loginComponentManager } from '@kit.AccountKit'
+import { authentication, loginComponentManager, LoginWithHuaweiIDButton } from '@kit.AccountKit'
 import { BusinessError } from '@kit.BasicServicesKit'
+import { util } from '@kit.ArkTS'
 import { telemetry } from '../telemetry/Telemetry'
+import { AgreementDialog, AgreementRow } from '../components/AgreementViews'
 
 export enum AuthMode {
   SignIn,
@@ -15,6 +17,9 @@ export enum AuthMode {
   Verify,
   Reset
 }
+
+const TERMS_TAG = 'terms'
+const PRIVACY_TAG = 'privacy'
 
 @Component
 export struct AuthPage {
@@ -27,64 +32,97 @@ export struct AuthPage {
   @State consentAgreed: boolean = false
   @State socialProvider: string = ''
   @State isHuaweiLoading: boolean = false
-  // 华为账号绑定的匿名手机号（如 177******43）：QUICK_LOGIN 必填参数，
-  // 进页面静默预取号获得；取不到则隐藏一键登录区（华为文档要求此时用其他登录类型）。
+  @State isPasswordLoading: boolean = false
+  @State errorMessage: string = ''
+  // 华为账号绑定的匿名手机号（如 177******43），进页面静默预取号用于展示
   @State huaweiAnonymousPhone: string = ''
-  // 「其他方式登录」切换：true 显示邮箱/手机号表单（隐藏一键登录面板）
-  @State showPasswordForm: boolean = false
-  private loginPanelController: loginComponentManager.LoginPanelController = new loginComponentManager.LoginPanelController()
-    .setAgreementStatus(loginComponentManager.AgreementStatus.ACCEPTED)
-    .onClickLoginWithHuaweiIDButton(
-      (error: BusinessError, response: loginComponentManager.HuaweiIDCredential) => {
-        if (error) {
-          // 1001502012/1001502001 = 用户取消/重复授权，静默忽略
-          if (error.code !== 1001502012 && error.code !== 1001502001) {
-            this.store.showToast(`华为登录失败 (${error.code})`, true)
+  // 预取号失败信息（scope 未授权 / 网络异常等），透出原因
+  @State huaweiPrefetchError: string = ''
+  // 登录方式：'huawei' 一键登录（默认）| 'password' 邮箱/密码
+  @State loginMode: string = 'huawei'
+
+  private huaweiButtonController: loginComponentManager.LoginWithHuaweiIDButtonController =
+    new loginComponentManager.LoginWithHuaweiIDButtonController()
+      .setAgreementStatus(loginComponentManager.AgreementStatus.NOT_ACCEPTED)
+      .onClickLoginWithHuaweiIDButton(
+        (error: BusinessError, response: loginComponentManager.HuaweiIDCredential) => {
+          if (error) {
+            // 1005300001 = 未同意协议（NOT_ACCEPTED 状态下 SDK 拦截）→ 弹协议弹窗
+            if (error.code === 1005300001) {
+              this.openAgreement()
+              return
+            }
+            // 1001502012/1001502001 = 用户取消/重复授权，静默忽略
+            if (error.code !== 1001502012 && error.code !== 1001502001) {
+              this.errorMessage = `华为登录失败 (${error.code})`
+            }
+            return
           }
-          return
+          if (!this.consentAgreed) {
+            this.openAgreement()
+            return
+          }
+          const authCode = response?.authorizationCode ?? ''
+          if (authCode.length === 0) {
+            this.errorMessage = '未获取到华为授权码'
+            return
+          }
+          this.handleHuaweiLogin(authCode)
         }
-        if (!this.ensureConsent()) return
-        const authCode = response?.authorizationCode ?? ''
-        if (authCode.length === 0) {
-          this.store.showToast('未获取到华为授权码', true)
-          return
-        }
-        this.handleHuaweiLogin(authCode)
+      )
+
+  private agreementDialogController: CustomDialogController = new CustomDialogController({
+    builder: AgreementDialog({
+      store: this.store,
+      cancel: () => { this.agreementDialogController.close() },
+      confirm: () => {
+        this.agreementDialogController.close()
+        this.setConsent(true)
+        this.huaweiButtonController.setAgreementStatus(loginComponentManager.AgreementStatus.ACCEPTED)
+        this.huaweiButtonController.continueLogin((error: BusinessError) => {
+          if (error) {
+            this.errorMessage = `继续登录失败 (${error.code})`
+          }
+        })
       }
-    )
-    .onClickOptionalLoginButton(() => {
-      // 「其他方式登录」：切到邮箱/手机号表单
-      this.showPasswordForm = true
-    })
+    }),
+    autoCancel: false,
+    alignment: DialogAlignment.Center,
+    cornerRadius: 16
+  })
 
   aboutToAppear(): void {
     this.prefetchHuaweiPhone()
   }
 
-  /** 预取华为账号匿名手机号（quickLoginAnonymousPhone scope 静默返回），取不到则不显示一键登录面板。 */
+  /**
+   * 预取华为账号匿名手机号（quickLoginAnonymousPhone scope 静默返回）。
+   * 参照 CortexTerminal2：scope 只用 quickLoginAnonymousPhone、forceAuthorization=false、
+   * 带 state、AuthenticationController 不传 context、promise 风格。
+   */
   private prefetchHuaweiPhone(): void {
     if (this.store.authProviders['huawei'] !== true) return
     try {
       const req = new authentication.HuaweiIDProvider().createAuthorizationWithHuaweiIDRequest()
-      req.scopes = ['openid', 'quickLoginAnonymousPhone']
-      const controller = new authentication.AuthenticationController(this.getUIContext().getHostContext())
-      controller.executeRequest(req, (error: BusinessError<Object>, data) => {
-        if (error) {
-          console.error(`[geekread][huawei-prefetch] failed: code=${error.code} msg=${error.message}`)
-          return // 失败：不显示一键登录区
-        }
-        const resp = data as authentication.AuthorizationWithHuaweiIDResponse
-        const extra = resp.data?.extraInfo
-        if (extra !== undefined) {
-          const phone = extra['quickLoginAnonymousPhone']
-          if (typeof phone === 'string' && phone.length > 0) this.huaweiAnonymousPhone = phone
-          else console.error('[geekread][huawei-prefetch] no quickLoginAnonymousPhone in extraInfo')
+      req.scopes = ['quickLoginAnonymousPhone']
+      req.state = util.generateRandomUUID()
+      req.forceAuthorization = false
+      const controller = new authentication.AuthenticationController()
+      controller.executeRequest(req).then((resp: authentication.AuthorizationWithHuaweiIDResponse) => {
+        const phone = resp.data?.extraInfo?.quickLoginAnonymousPhone as string ?? ''
+        if (phone.length > 0) {
+          this.huaweiAnonymousPhone = phone
         } else {
-          console.error('[geekread][huawei-prefetch] no extraInfo in response')
+          console.error('[geekread][huawei-prefetch] no quickLoginAnonymousPhone in extraInfo')
+          this.huaweiPrefetchError = '未返回匿名手机号'
         }
+      }).catch((error: BusinessError) => {
+        console.error(`[geekread][huawei-prefetch] failed: code=${error.code} msg=${error.message}`)
+        this.huaweiPrefetchError = `取号失败 code=${error.code}`
       })
     } catch (e) {
-      // 预取号失败静默降级
+      console.error('[geekread][huawei-prefetch] exception')
+      this.huaweiPrefetchError = '预取号异常'
     }
   }
 
@@ -92,133 +130,325 @@ export struct AuthPage {
     Stack() {
       Column() {
         PageHeader({ store: this.store, title: this.title() })
+        if (this.mode === AuthMode.SignIn) {
+          this.SignInContent()
+        } else {
+          this.FormContent()
+        }
+      }
+      .width('100%')
+      .height('100%')
+      if (this.socialProvider.length > 0) {
+        SocialAuthSheet({
+          store: this.store,
+          provider: this.socialProvider,
+          onDismiss: () => { this.socialProvider = '' }
+        })
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  // ── 登录（SignIn）：照搬 CortexTerminal2 两段式一键登录 + 密码登录 ──
+
+  @Builder
+  SignInContent() {
+    Scroll() {
       Column({ space: AppSpacing.x4 }) {
-        Text(this.mode === AuthMode.SignIn ? '欢迎登录极客译读 :)' : this.title())
+        Text('欢迎登录极客译读 :)')
           .fontSize(28)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.text)
           .width('100%')
-        if (this.mode === AuthMode.SignIn) {
-          Text('安全同步你的会员、订单与偏好设置。')
-            .fontColor(AppColors.textSecondary)
-            .width('100%')
-        }
-        // 华为一键登录面板（LoginPanel）：应用信息 + 匿名手机号 + 全宽一键登录按钮
-        // + 「其他方式登录」切到下方表单。预取号失败或非 SignIn 模式时不显示。
-        if (this.mode === AuthMode.SignIn && !this.showPasswordForm &&
-          this.store.authProviders['huawei'] === true &&
-          this.huaweiAnonymousPhone.length > 0) {
-          LoginPanel({
-            show: true,
-            params: {
-              appInfo: {
-                appIcon: $r('app.media.app_icon'),
-                appName: this.store.config?.brand.appName ?? '极客译读'
-              },
-              anonymousPhoneNumber: this.huaweiAnonymousPhone,
-              loginType: loginComponentManager.LoginType.QUICK_LOGIN,
-              optionalLoginButtonAttr: { text: '其他方式登录' }
-            },
-            controller: this.loginPanelController
-          })
+        Text('安全同步你的会员、订单与偏好设置。')
+          .fontColor(AppColors.textSecondary)
           .width('100%')
+
+        if (this.loginMode === 'huawei') {
+          this.HuaweiLoginSection()
+          this.DividerSection()
+          this.OtherLoginEntry('手机号登录', () => this.store.navigate(AppRoute.PhoneSignIn))
+          this.OtherLoginEntry('邮箱/密码登录', () => { this.loginMode = 'password'; this.errorMessage = '' })
         } else {
-        if (this.mode !== AuthMode.Verify && this.mode !== AuthMode.Reset) {
-          TextInput({
-            placeholder: this.accountPlaceholder(),
-            text: this.email
-          })
-            .height(52)
-            .backgroundColor(AppColors.surface)
-            .border({ width: 1, color: AppColors.borderStrong })
-            .borderRadius(AppRadii.control)
-            .placeholderColor(AppColors.textSecondary)
-            .onChange(value => this.email = value)
-        } else {
-          Text(this.store.recoveryEmail)
-            .fontColor(AppColors.textSecondary)
-            .width('100%')
+          this.PasswordLoginSection()
+          this.DividerSection()
+          this.OtherLoginEntry('华为账号登录', () => { this.loginMode = 'huawei'; this.errorMessage = '' })
+          this.OtherLoginEntry('手机号登录', () => this.store.navigate(AppRoute.PhoneSignIn))
         }
-        if (this.mode !== AuthMode.Forgot &&
-          (this.mode !== AuthMode.Phone || this.phoneCodeSent)) {
-          TextInput({
-            placeholder: this.mode === AuthMode.Verify ||
-              this.mode === AuthMode.Phone ? '验证码' :
-              this.mode === AuthMode.Reset ? '新密码' : '密码',
-            text: this.password
-          })
-            .height(52)
-            .type(this.mode === AuthMode.Verify ||
-              this.mode === AuthMode.Phone ? InputType.Number : InputType.Password)
-            .backgroundColor(AppColors.surface)
-            .border({ width: 1, color: AppColors.borderStrong })
-            .borderRadius(AppRadii.control)
-            .placeholderColor(AppColors.textSecondary)
-            .onChange(value => this.password = value)
-        }
-        if (this.mode === AuthMode.SignUp) {
-          TextInput({ placeholder: '用户名', text: this.username })
-            .height(52)
-            .backgroundColor(AppColors.surface)
-            .border({ width: 1, color: AppColors.borderStrong })
-            .borderRadius(AppRadii.control)
-            .placeholderColor(AppColors.textSecondary)
-            .onChange(value => this.username = value)
-        }
-        AppButton({
-          label: this.store.busy ? '正在处理…' : this.action(),
-          onTap: () => this.submit()
-        })
-        if (this.mode === AuthMode.SignIn) {
-          Text('其他登录方式')
-            .fontSize(12)
-            .fontColor(AppColors.textSecondary)
-          AuthProviderRow({
-            store: this.store,
-            consentAgreed: this.consentAgreed,
-            onSocial: (provider) => this.beginSocial(provider)
-          })
-          Text('忘记密码')
-            .fontColor(AppColors.brand)
-            .onClick(() => this.store.navigate(AppRoute.ForgotPassword))
-          Text('创建账号')
-            .fontColor(AppColors.brand)
-            .onClick(() => this.store.navigate(AppRoute.SignUp))
-        }
-        }
-        if (this.requiresConsent()) {
-          Row({ space: AppSpacing.x1 }) {
-            Checkbox()
-              .select(this.consentAgreed)
-              .onChange((value: boolean) => { this.consentAgreed = value })
-            Text('我已阅读并同意').fontSize(12).fontColor(AppColors.textSecondary)
-              .onClick(() => { this.consentAgreed = !this.consentAgreed })
-            Text('用户协议')
-              .fontSize(12).fontColor(AppColors.brand)
-              .onClick(() => this.store.navigate(AppRoute.TermsOfService))
-            Text('与').fontSize(12).fontColor(AppColors.textSecondary)
-              .onClick(() => { this.consentAgreed = !this.consentAgreed })
-            Text('隐私政策')
-              .fontSize(12).fontColor(AppColors.brand)
-              .onClick(() => this.store.navigate(AppRoute.PrivacyPolicy))
-          }
-          .justifyContent(FlexAlign.Center)
-          .width('100%')
+
+        if (this.errorMessage.length > 0) {
+          this.ErrorBanner()
         }
       }
       .padding(AppSpacing.x6)
-      .justifyContent(FlexAlign.Center)
-      .layoutWeight(1)
+      .width('100%')
     }
     .width('100%')
-    .height('100%')
-    if (this.socialProvider.length > 0) {
-      SocialAuthSheet({
-        store: this.store,
-        provider: this.socialProvider,
-        onDismiss: () => { this.socialProvider = '' }
-      })
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
+    .align(Alignment.Top)
+
+    AgreementRow({
+      store: this.store,
+      agreed: this.consentAgreed,
+      fontSize: 12,
+      onChange: (value: boolean) => { this.setConsent(value) }
+    })
+    .width('100%')
+    .padding({ left: AppSpacing.x6, right: AppSpacing.x6, top: AppSpacing.x3, bottom: AppSpacing.x3 })
+  }
+
+  // 华为一键登录：匿名手机号 + 一键登录按钮
+  @Builder
+  HuaweiLoginSection() {
+    Column() {
+      if (this.huaweiAnonymousPhone.length > 0) {
+        Text(this.huaweiAnonymousPhone)
+          .fontSize(32)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(AppColors.text)
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: 8 })
+      }
+
+      Stack() {
+        LoginWithHuaweiIDButton({
+          params: {
+            style: loginComponentManager.Style.BUTTON_RED,
+            loginType: loginComponentManager.LoginType.QUICK_LOGIN,
+            borderRadius: 24,
+            supportDarkMode: true
+          },
+          controller: this.huaweiButtonController
+        }).width('100%').height(48).constraintSize({ maxWidth: 400 })
+
+        if (this.isHuaweiLoading) {
+          Row() {
+            LoadingProgress().width(24).height(24).color(AppColors.brand)
+          }
+          .width('100%')
+          .height(48)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor(AppColors.surface)
+          .opacity(0.7)
+          .borderRadius(24)
+          .constraintSize({ maxWidth: 400 })
+          .hitTestBehavior(HitTestMode.Block)
+        }
+      }
+
+      if (this.huaweiPrefetchError.length > 0) {
+        Text(`一键登录取号失败：${this.huaweiPrefetchError}`)
+          .fontSize(12)
+          .fontColor(AppColors.textSecondary)
+          .width('100%')
+          .margin({ top: AppSpacing.x2 })
+      }
     }
+    .width('100%')
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  // 邮箱/密码登录
+  @Builder
+  PasswordLoginSection() {
+    Column() {
+      TextInput({ placeholder: '邮箱', text: this.email })
+        .height(52)
+        .backgroundColor(AppColors.surface)
+        .border({ width: 1, color: AppColors.borderStrong })
+        .borderRadius(AppRadii.control)
+        .placeholderColor(AppColors.textSecondary)
+        .onChange(value => { this.email = value; this.errorMessage = '' })
+
+      TextInput({ placeholder: '密码', text: this.password })
+        .type(InputType.Password)
+        .height(52)
+        .backgroundColor(AppColors.surface)
+        .border({ width: 1, color: AppColors.borderStrong })
+        .borderRadius(AppRadii.control)
+        .placeholderColor(AppColors.textSecondary)
+        .onChange(value => { this.password = value; this.errorMessage = '' })
+
+      AppButton({
+        label: this.isPasswordLoading ? '正在登录…' : '登录',
+        onTap: () => this.handlePasswordLogin()
+      })
+
+      Row({ space: AppSpacing.x2 }) {
+        Text('忘记密码')
+          .fontSize(12)
+          .fontColor(AppColors.brand)
+          .onClick(() => this.store.navigate(AppRoute.ForgotPassword))
+        Text('创建账号')
+          .fontSize(12)
+          .fontColor(AppColors.brand)
+          .onClick(() => this.store.navigate(AppRoute.SignUp))
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+    }
+    .width('100%')
+  }
+
+  // 其他登录方式入口（全宽描边按钮）
+  @Builder
+  OtherLoginEntry(label: string, onTap: () => void) {
+    Button(label)
+      .width('100%')
+      .height(48)
+      .borderRadius(24)
+      .backgroundColor(Color.Transparent)
+      .border({ width: 1, color: AppColors.borderStrong })
+      .fontColor(AppColors.text)
+      .fontSize(14)
+      .fontWeight(FontWeight.Medium)
+      .onClick(() => { onTap() })
+  }
+
+  @Builder
+  DividerSection() {
+    Row() {
+      Divider().layoutWeight(1).color(AppColors.borderStrong)
+      Text('其他方式')
+        .fontSize(14)
+        .fontColor(AppColors.textSecondary)
+        .margin({ left: 16, right: 16 })
+      Divider().layoutWeight(1).color(AppColors.borderStrong)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  ErrorBanner() {
+    Row() {
+      Text('⚠')
+        .fontSize(14)
+        .fontColor(AppColors.brand)
+        .margin({ right: 8 })
+      Text(this.errorMessage)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(AppColors.brand)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .margin({ top: AppSpacing.x2 })
+  }
+
+  // ── 非 SignIn 模式（SignUp / Phone / Forgot / Verify / Reset）：沿用原表单 ──
+
+  @Builder
+  FormContent() {
+    Column({ space: AppSpacing.x4 }) {
+      if (this.mode !== AuthMode.Verify && this.mode !== AuthMode.Reset) {
+        TextInput({
+          placeholder: this.accountPlaceholder(),
+          text: this.email
+        })
+          .height(52)
+          .backgroundColor(AppColors.surface)
+          .border({ width: 1, color: AppColors.borderStrong })
+          .borderRadius(AppRadii.control)
+          .placeholderColor(AppColors.textSecondary)
+          .onChange(value => this.email = value)
+      } else {
+        Text(this.store.recoveryEmail)
+          .fontColor(AppColors.textSecondary)
+          .width('100%')
+      }
+      if (this.mode !== AuthMode.Forgot &&
+        (this.mode !== AuthMode.Phone || this.phoneCodeSent)) {
+        TextInput({
+          placeholder: this.mode === AuthMode.Verify ||
+            this.mode === AuthMode.Phone ? '验证码' :
+            this.mode === AuthMode.Reset ? '新密码' : '密码',
+          text: this.password
+        })
+          .height(52)
+          .type(this.mode === AuthMode.Verify ||
+            this.mode === AuthMode.Phone ? InputType.Number : InputType.Password)
+          .backgroundColor(AppColors.surface)
+          .border({ width: 1, color: AppColors.borderStrong })
+          .borderRadius(AppRadii.control)
+          .placeholderColor(AppColors.textSecondary)
+          .onChange(value => this.password = value)
+      }
+      if (this.mode === AuthMode.SignUp) {
+        TextInput({ placeholder: '用户名', text: this.username })
+          .height(52)
+          .backgroundColor(AppColors.surface)
+          .border({ width: 1, color: AppColors.borderStrong })
+          .borderRadius(AppRadii.control)
+          .placeholderColor(AppColors.textSecondary)
+          .onChange(value => this.username = value)
+      }
+      AppButton({
+        label: this.store.busy ? '正在处理…' : this.action(),
+        onTap: () => this.submit()
+      })
+      if (this.requiresConsent()) {
+        AgreementRow({
+          store: this.store,
+          agreed: this.consentAgreed,
+          fontSize: 12,
+          onChange: (value: boolean) => { this.setConsent(value) }
+        })
+        .width('100%')
+      }
+    }
+    .padding(AppSpacing.x6)
+    .justifyContent(FlexAlign.Center)
+    .layoutWeight(1)
+  }
+
+  // ── 处理函数 ──
+
+  private openAgreement(): void {
+    this.agreementDialogController.open()
+  }
+
+  private setConsent(agreed: boolean): void {
+    this.consentAgreed = agreed
+    this.huaweiButtonController.setAgreementStatus(
+      agreed ? loginComponentManager.AgreementStatus.ACCEPTED : loginComponentManager.AgreementStatus.NOT_ACCEPTED
+    )
+  }
+
+  private async handleHuaweiLogin(authCode: string): Promise<void> {
+    if (this.store.busy) return
+    this.isHuaweiLoading = true
+    this.errorMessage = ''
+    try {
+      const ok = await this.store.socialSignIn('huawei', '', authCode, '', '')
+      if (ok) {
+        this.store.showToast('登录成功')
+        this.store.completeAuthentication()
+      }
+    } finally {
+      this.isHuaweiLoading = false
+    }
+  }
+
+  private async handlePasswordLogin(): Promise<void> {
+    if (this.store.busy) return
+    if (!this.ensureConsent()) return
+    telemetry.click('auth_submit_signin', 'auth')
+    this.isPasswordLoading = true
+    this.errorMessage = ''
+    try {
+      const ok = await this.store.signIn(this.email, this.password)
+      if (ok) {
+        this.store.showToast('登录成功')
+        this.store.completeAuthentication()
+      } else {
+        this.isPasswordLoading = false
+      }
+    } catch (e) {
+      this.isPasswordLoading = false
     }
   }
 
@@ -230,20 +460,6 @@ export struct AuthPage {
       return
     }
     this.socialProvider = provider
-  }
-
-  private async handleHuaweiLogin(authCode: string): Promise<void> {
-    if (this.store.busy) return
-    this.isHuaweiLoading = true
-    try {
-      const ok = await this.store.socialSignIn('huawei', '', authCode, '', '')
-      if (ok) {
-        this.store.showToast('登录成功')
-        this.store.completeAuthentication()
-      }
-    } finally {
-      this.isHuaweiLoading = false
-    }
   }
 
   private async submit(): Promise<void> {
@@ -269,6 +485,7 @@ export struct AuthPage {
         }
         return
       case AuthMode.Phone:
+        if (!this.ensureConsent()) return
         if (!this.phoneCodeSent) {
           if (await this.store.requestPhoneCode(this.normalizePhone(this.email))) {
             this.phoneCodeSent = true
@@ -301,12 +518,12 @@ export struct AuthPage {
 
   private ensureConsent(): boolean {
     if (this.consentAgreed) return true
-    this.store.showToast('请先阅读并同意用户协议与隐私政策', true)
+    this.openAgreement()
     return false
   }
 
   private requiresConsent(): boolean {
-    return this.mode === AuthMode.SignIn || this.mode === AuthMode.SignUp
+    return this.mode === AuthMode.SignIn || this.mode === AuthMode.SignUp || this.mode === AuthMode.Phone
   }
 
   private accountPlaceholder(): string {
@@ -350,69 +567,5 @@ export struct AuthPage {
       case AuthMode.Verify: return '确认验证码'
       case AuthMode.Reset: return '确认修改'
     }
-  }
-}
-
-@Component
-struct AuthProviderRow {
-  @ObjectLink store: AppStore
-  // @Prop 响应式：父组件 @State consentAgreed 变化时覆盖层实时消失，
-  // 否则普通字段不更新，勾选后仍拦截提示"请先同意"。
-  @Prop consentAgreed: boolean = false
-  onSocial: (provider: string) => void = () => {}
-
-  build() {
-    Row({ space: AppSpacing.x5 }) {
-      AuthProviderButton({
-        label: '手机号',
-        icon: $r('app.media.phone'),
-        iconStyle: AuthIconStyle.Monochrome,
-        isEnabled: this.store.authProviders['phone'] === true,
-        onTap: () => this.onSocial('phone')
-      })
-    }
-    .justifyContent(FlexAlign.Center)
-    .width('100%')
-  }
-}
-
-enum AuthIconStyle {
-  Branded,
-  Monochrome
-}
-
-@Component
-struct AuthProviderButton {
-  @Prop label: string
-  @Prop icon: Resource
-  @Prop iconStyle: AuthIconStyle = AuthIconStyle.Monochrome
-  @Prop isEnabled: boolean = false
-  onTap: () => void = () => {}
-
-  build() {
-    Column({ space: AppSpacing.x1 }) {
-      Column() {
-        if (this.iconStyle === AuthIconStyle.Monochrome) {
-          Image(this.icon)
-            .width(24)
-            .height(24)
-            .fillColor(AppColors.text)
-        } else {
-          Image(this.icon)
-            .width(24)
-            .height(24)
-        }
-      }
-        .width(52)
-        .height(52)
-        .justifyContent(FlexAlign.Center)
-        .backgroundColor(AppColors.surface)
-        .border({ width: 1, color: AppColors.textSecondary })
-        .borderRadius(26)
-      Text(this.label).fontSize(12).fontColor(AppColors.textSecondary)
-    }
-    .opacity(this.isEnabled ? 1 : 0.38)
-    .enabled(this.isEnabled)
-    .onClick(this.onTap)
   }
 }
