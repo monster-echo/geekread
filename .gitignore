@@ -20,6 +20,7 @@ arkts/entry/**/signing-config.json
 .local/
 material/
 *-signed.app
+*-signed.hap
 
 # arkts-code-check 工具产物
 review_report.md
