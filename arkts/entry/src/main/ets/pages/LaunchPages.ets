@@ -22,15 +22,14 @@ export struct SplashPage {
   @ObjectLink @Watch('onStoreChanged') store: AppStore
   @State minElapsed: boolean = false
   @State countdown: number = -1 // -1 = loading 阶段；>=0 = 品牌闪屏阶段
+  // struct 不支持 get 访问器（编译产物会静默丢弃），进入闪屏阶段时快照到 @State。
+  // getter 每次重渲染重读 config 的语义也不对：闪屏展示中途不应被配置变化打断。
+  @State splash: SplashConfig | null = null
   private minTimer: number = -1
   private maxTimer: number = -1
   private countdownTimer: number = -1
   private advancing: boolean = false
   private done: boolean = false
-
-  private get splashConfig(): SplashConfig | null {
-    return this.store.config?.splash ?? null
-  }
 
   aboutToAppear(): void {
     this.minTimer = setTimeout(() => {
@@ -66,6 +65,7 @@ export struct SplashPage {
   enterSplash(splash: SplashConfig): void {
     // ArkTS 无 RN Image.prefetch 等价的简单预加载 API，依赖 Image/Video 组件自身加载；
     // loading 阶段已吸收首拉延迟，组件 onError 回退 fallback，不致黑屏。
+    this.splash = splash
     this.countdown = splash.durationSeconds
     this.countdownTimer = setInterval(() => {
       if (this.countdown <= 1) {
@@ -102,13 +102,13 @@ export struct SplashPage {
       .backgroundColor(AppColors.background)
     } else {
       // 闪屏阶段：countdown 非空即已确认有 splash 配置（maybeAdvance 保证非空）
-      if (this.splashConfig != null) {
+      if (this.splash != null) {
         Stack({ alignContent: Alignment.TopEnd }) {
-          SplashMedia({ splash: this.splashConfig })
+          SplashMedia({ splash: this.splash })
           Row() {
             SkipCapsule({
               countdown: Math.max(this.countdown, 0),
-              canSkip: this.splashConfig.skippable !== false,
+              canSkip: this.splash.skippable !== false,
               onSkip: () => { this.goHome() }
             })
           }

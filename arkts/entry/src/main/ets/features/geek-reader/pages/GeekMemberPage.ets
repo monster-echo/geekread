@@ -26,7 +26,8 @@ export struct GeekMemberPage {
     this.plans = all.filter((p: BillingPlan) => p.tierId === 'pro')
   }
 
-  private get isPro(): boolean {
+  // struct 不支持 get 访问器（编译产物会静默丢弃），用普通方法
+  private isPro(): boolean {
     return this.store.user?.tierId === 'pro'
   }
 
@@ -37,12 +38,12 @@ export struct GeekMemberPage {
       Column({ space: AppSpacing.x3 }) {
         Row() {
           AppIcon({ name: AppIconName.Crown, color: AppColors.brand, iconSize: 28 })
-          Text(this.isPro ? 'Pro 会员' : '免费版')
+          Text(this.isPro() ? 'Pro 会员' : '免费版')
             .fontSize(22).fontWeight(FontWeight.Bold).fontColor(AppColors.text).layoutWeight(1)
         }.width('100%')
-        Text(this.isPro ? '每日 500 次评论翻译 · 已解锁' : '每日 20 次评论翻译 · 升级解锁 500 次')
+        Text(this.isPro() ? '每日 500 次评论翻译 · 已解锁' : '每日 20 次评论翻译 · 升级解锁 500 次')
           .fontSize(14).fontColor(AppColors.textSecondary)
-        if (this.isPro) {
+        if (this.isPro()) {
           Text('当前已是 Pro，感谢支持！').fontSize(12).fontColor(AppColors.success)
         }
       }
@@ -83,7 +84,7 @@ export struct GeekMemberPage {
                 }
               }.width('100%')
               AppButton({
-                label: this.isPro ? '已订阅' : `订阅 ${plan.name}`,
+                label: this.isPro() ? '已订阅' : `订阅 ${plan.name}`,
                 onTap: () => this.buy(plan)
               })
             }

@@ -93,7 +93,9 @@ export struct ImmersiveTranslation {
   private cleanSrc: string = ''
   private cleanCache: string = ''
 
-  private get lang(): TargetLanguage | null {
+  // 注意：struct 不支持 get 访问器（编译产物会静默丢弃，运行时读出 undefined），
+  // 计算属性必须用普通方法。参考华为 FAQ「自定义组件 struct 内不支持 get/set」。
+  private langOf(): TargetLanguage | null {
     return deriveTargetLanguage(this.locale && this.locale.length > 0 ? this.locale : 'zh-CN')
   }
 
@@ -121,14 +123,14 @@ export struct ImmersiveTranslation {
     }
     // 需要译文（translation / both）时自动触发，不点击。清洗后为空的文本不触发
     // （链接/图片型评论没有可译内容，避免空转圈）。
-    if (this.displayMode !== 'original' && this.lang !== null &&
+    if (this.displayMode !== 'original' && this.langOf() !== null &&
       this.result.length === 0 && this.clean().trim().length > 0) {
       this.doTranslate()
     }
   }
 
   private doTranslate(): void {
-    const l = this.lang
+    const l = this.langOf()
     if (l === null) return
     this.loading = true
     this.failed = false
@@ -193,7 +195,7 @@ export struct ImmersiveTranslation {
             .width('100%')
         }
       }
-      if (this.lang === null) {
+      if (this.langOf() === null) {
         // 源语言（en 等）不译，只显原文
       } else if (this.showTranslation()) {
         if (this.displayMode === 'translation') {
@@ -226,7 +228,7 @@ export struct ImmersiveTranslation {
             LoadingProgress().width(20).height(20)
           } else if (this.result.length > 0) {
             Column({ space: AppSpacing.x1 }) {
-              Text(`译 · ${labelOf(this.lang)}`)
+              Text(`译 · ${labelOf(this.langOf())}`)
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result)
