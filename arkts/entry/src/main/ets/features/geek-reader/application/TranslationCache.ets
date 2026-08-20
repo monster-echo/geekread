@@ -103,6 +103,14 @@ function takeChunk(): Pending[] {
 /** 分发一个 chunk 到后端（内部消化所有异常，不会 reject）。 */
 async function dispatchChunk(chunk: Pending[]): Promise<void> {
   const lang = chunk[0].lang
+  // 防御：lang 非法时跳过整批，避免把 undefined 发给后端触发 400
+  if (lang === undefined || lang === null) {
+    console.error(`[geekread][translate] SKIP batch with invalid lang, texts=${chunk.length}`)
+    for (let i = 0; i < chunk.length; i++) {
+      chunk[i].reject(new Error('invalid lang'))
+    }
+    return
+  }
   const entries: TranslateEntry[] = []
   for (let i = 0; i < chunk.length; i++) {
     entries.push({ key: String(i), text: chunk[i].text })

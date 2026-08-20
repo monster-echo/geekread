@@ -13,6 +13,11 @@ interface HttpErrorLike {
   code?: number
 }
 
+/** 后端 errorResponse 的响应体结构（{ error: "invalid_request" } 等）。 */
+interface ApiErrorBody {
+  error?: string
+}
+
 export interface TranslateEntry {
   key: string
   text: string
@@ -71,8 +76,17 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
     })
     const text = String(response.result)
     if (response.responseCode < 200 || response.responseCode >= 300) {
-      console.error(`[geekread][reader] ${path} HTTP ${response.responseCode}`)
-      throw new Error(`geekreader_${response.responseCode}`)
+      // 后端 errorResponse 返回 { error: "invalid_request" } 等具体原因，
+      // 解析后拼进错误消息，避免 UI 只显示笼统的 geekreader_400。
+      let detail = ''
+      try {
+        const parsed = JSON.parse(text) as ApiErrorBody
+        if (parsed?.error !== undefined && parsed.error.length > 0) detail = parsed.error
+      } catch {
+        // 响应体非 JSON（网关/代理错误页），无详情可提取
+      }
+      console.error(`[geekread][reader] ${path} HTTP ${response.responseCode}${detail.length > 0 ? ' ' + detail : ''}`)
+      throw new Error(`geekreader_${response.responseCode}${detail.length > 0 ? ': ' + detail : ''}`)
     }
     return text
   } catch (e) {

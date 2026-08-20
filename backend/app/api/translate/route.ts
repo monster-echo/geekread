@@ -1,5 +1,5 @@
 import { hasProEntitlement } from '../../../lib/entitlement';
-import { errorResponse, json, requireString, safeErrorStatus } from '../../../lib/http';
+import { errorResponse, json, safeErrorStatus } from '../../../lib/http';
 import { translateWithModel } from '../../../lib/model';
 import { reserveDaily, today } from '../../../lib/quota';
 import { cacheTranslation, getCachedTranslation } from '../../../lib/cache-store';
@@ -26,24 +26,36 @@ export async function POST(request: Request): Promise<Response> {
   try { payload = await request.json(); } catch { console.log('[translate] REJECT: json parse'); return errorResponse('invalid_request', 400); }
 
   try {
-    const targetLanguage = requireString((payload as { targetLanguage?: unknown }).targetLanguage, 20);
+    const rawLang = (payload as { targetLanguage?: unknown }).targetLanguage;
+    if (typeof rawLang !== 'string' || rawLang.trim().length === 0) {
+      throw new Error('invalid_request: targetLanguage missing');
+    }
+    if (rawLang.length > 20) throw new Error('invalid_request: targetLanguage too long');
+    const targetLanguage = rawLang.trim();
     if (!SUPPORTED.has(targetLanguage)) throw new Error('unsupported_target_language');
     // free=true 走免费通道（不扣配额）：列表标题/详情正文，用于留存。
     const isFree = (payload as { free?: unknown }).free === true;
     const rawEntries = (payload as { entries?: unknown }).entries;
-    if (!Array.isArray(rawEntries) || rawEntries.length === 0 || rawEntries.length > MAX_ENTRIES) {
-      throw new Error('invalid_request');
+    if (!Array.isArray(rawEntries) || rawEntries.length === 0) {
+      throw new Error('invalid_request: entries missing or empty');
+    }
+    if (rawEntries.length > MAX_ENTRIES) {
+      throw new Error(`invalid_request: too many entries (${rawEntries.length} > ${MAX_ENTRIES})`);
     }
     const entries: Entry[] = rawEntries.map((v) => {
-      if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('invalid_request');
+      if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('invalid_request: entry not an object');
       const e = v as { key?: unknown; text?: unknown };
       // 空文本不再 400 整批（链接/图片型评论 HTML 清洗后为空）：按条目返回空翻译，
       // 不调 LLM 不扣配额——保护老版本客户端的整批请求不被一条空评论毒死。
       const text = typeof e.text === 'string' ? e.text.trim().slice(0, 12_000) : null;
-      if (text === null) throw new Error('invalid_request');
-      return { key: requireString(e.key, 256), text };
+      if (text === null) throw new Error('invalid_request: entry text not a string');
+      const key = typeof e.key === 'string' && e.key.trim().length > 0 && e.key.length <= 256 ? e.key.trim() : null;
+      if (key === null) throw new Error('invalid_request: entry key missing');
+      return { key, text };
     });
-    if (entries.reduce((n, e) => n + e.text.length, 0) > MAX_TOTAL_CHARS) throw new Error('invalid_request');
+    if (entries.reduce((n, e) => n + e.text.length, 0) > MAX_TOTAL_CHARS) {
+      throw new Error(`invalid_request: total chars exceed ${MAX_TOTAL_CHARS}`);
+    }
 
     const day = today();
     const results: Result[] = new Array(entries.length);
@@ -95,6 +107,13 @@ export async function POST(request: Request): Promise<Response> {
     return json({ results, ...(remaining === undefined ? {} : { remainingTranslations: remaining }) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';
+    // 临时诊断：打印失败请求摘要，定位 invalid_request 具体来源
+    const p = payload as { targetLanguage?: unknown; entries?: unknown; free?: unknown } | null;
+    const entryCount = Array.isArray(p?.entries) ? (p.entries as unknown[]).length : 'not-array';
+    const totalChars = Array.isArray(p?.entries)
+      ? (p.entries as { text?: unknown }[]).reduce((n, e) => n + (typeof e?.text === 'string' ? e.text.length : 0), 0)
+      : -1;
+    console.log(`[translate] REJECT: ${message} | targetLanguage=${JSON.stringify(p?.targetLanguage)} free=${JSON.stringify(p?.free)} entries=${entryCount} totalChars=${totalChars}`);
     return errorResponse(message, safeErrorStatus(message));
   }
 }

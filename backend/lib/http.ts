@@ -24,7 +24,7 @@ export function requireIds(value: unknown, max = 100): number[] {
 }
 
 export function safeErrorStatus(message: string): number {
-  return message === 'invalid_request' ? 400
+  return message === 'invalid_request' || message.startsWith('invalid_request:') ? 400
     : message === 'quota_exceeded' ? 429
     : message.startsWith('unsupported_') ? 400
     : 503;
