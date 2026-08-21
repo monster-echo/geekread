@@ -27,7 +27,7 @@ export function reloadEnv(): Env {
     freeDailyTranslations: num('FREE_DAILY_TRANSLATIONS', 20),
     proDailyTranslations: num('PRO_DAILY_TRANSLATIONS', 500),
     entitlementSigningSecret: str('ENTITLEMENT_SIGNING_SECRET'),
-    hackerNewsApiUrl: str('HACKER_NEWS_API_URL', 'https://hacker-news.firebaseio.com/v0'),
+    hackerNewsApiUrl: str('HACKER_NEWS_API_URL', 'https://hn.algolia.com/api/v1'),
   };
   return cached;
 }

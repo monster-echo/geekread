@@ -1,6 +1,6 @@
 // backend/lib/sync.ts
-import { fetchItems, fetchJson, ITEM_FRESH_SECONDS } from './hacker-news';
-import { oldestFetchedStories, readItems, readStoryList, saveStoryList, upsertItems } from './hn-store';
+import { fetchItemRaw, ITEM_FRESH_SECONDS, pullStoryList, pullTree } from './hacker-news';
+import { oldestFetchedStories, readItems, readStoryList, upsertItems } from './hn-store';
 import { hnHealth } from './hn-health';
 
 const TOP_N = Number(process.env.WARM_TOP_N ?? 50);
@@ -19,12 +19,10 @@ export type TickResult = {
 /** 列表层：拉 top/latest 列表并保存。 */
 export async function warmLists(): Promise<{ top: number; latest: number }> {
   const [top, latest] = await Promise.all([
-    fetchJson<number[]>('/topstories.json'),
-    fetchJson<number[]>('/newstories.json'),
+    pullStoryList('top', TOP_N),
+    pullStoryList('latest', LATEST_N),
   ]);
-  await saveStoryList('top', top.slice(0, TOP_N));
-  await saveStoryList('latest', latest.slice(0, LATEST_N));
-  return { top: Math.min(top.length, TOP_N), latest: Math.min(latest.length, LATEST_N) };
+  return { top: top.ids.length, latest: latest.ids.length };
 }
 
 /**
@@ -48,8 +46,7 @@ export async function warmStoryHeaders(ids: number[]): Promise<number[]> {
         fresh = old.raw as { descendants?: unknown } | null;
       } else {
         // 未落库或超 fresh：同步回源一次并 upsert
-        fresh = await fetchJson(`/item/${id}.json`) as { descendants?: unknown } | null;
-        if (fresh !== null && typeof fresh !== 'object') throw new Error('hacker_news_invalid_response');
+        fresh = await fetchItemRaw(id) as { descendants?: unknown } | null;
         await upsertItems([{ id, raw: fresh }]);
       }
       const oldDesc = typeof (old?.raw as { descendants?: unknown } | null | undefined)?.descendants === 'number'
@@ -65,7 +62,7 @@ export async function warmStoryHeaders(ids: number[]): Promise<number[]> {
 
 /**
  * 评论树层：候选 = descendants 增长的树 + 轮转最老树；每 tick 预算上限。
- * 树内条目走 fetchItems（fresh 的自动命中本地，天然增量）。
+ * 每棵树用 pullTree 一次整树拉取（Algolia /items/{id} 嵌套树）并落库，取代逐层 BFS。
  */
 export async function warmTrees(grown: number[], budget: number): Promise<number> {
   if (budget <= 0) return 0;
@@ -78,27 +75,7 @@ export async function warmTrees(grown: number[], budget: number): Promise<number
   let synced = 0;
   for (const storyId of candidates.slice(0, budget)) {
     try {
-      const storyRows = await readItems([storyId]);
-      const story = storyRows.get(storyId)?.raw as { kids?: unknown } | null | undefined;
-      const frontier: number[] = Array.isArray(story?.kids)
-        ? (story!.kids as unknown[]).filter((k): k is number => typeof k === 'number')
-        : [];
-      const seenIds = new Set<number>([storyId]);
-      let visited = 0;
-      while (frontier.length > 0 && visited < 200) {
-        const batch = frontier.splice(0, 50);
-        const res = await fetchItems(batch);
-        for (const item of res.items) {
-          if (item === null) continue;
-          const id = Number(item.id);
-          if (!id || seenIds.has(id)) continue;
-          seenIds.add(id);
-          visited += 1;
-          const kids = Array.isArray(item.kids)
-            ? item.kids.filter((k): k is number => typeof k === 'number') : [];
-          for (const k of kids) if (visited < 200) frontier.push(k);
-        }
-      }
+      await pullTree(storyId);
       synced += 1;
     } catch {
       // 单棵树失败不影响其他树

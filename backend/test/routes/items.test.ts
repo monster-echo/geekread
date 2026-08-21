@@ -10,8 +10,8 @@ describe('POST /api/reader/items', () => {
   it('returns items in order', async () => {
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
       const path = String(url);
-      if (path.endsWith('/item/1.json')) return new Response(JSON.stringify({ id: 1, title: 'a' }), { status: 200 });
-      if (path.endsWith('/item/2.json')) return new Response(JSON.stringify({ id: 2, title: 'b' }), { status: 200 });
+      if (path.endsWith('/items/1')) return new Response(JSON.stringify({ id: 1, type: 'story', title: 'a', author: 'x' }), { status: 200 });
+      if (path.endsWith('/items/2')) return new Response(JSON.stringify({ id: 2, type: 'story', title: 'b', author: 'y' }), { status: 200 });
       return new Response('nf', { status: 502 });
     }) as unknown as typeof fetch;
     const { POST } = await import('../../app/api/reader/items/route.js');

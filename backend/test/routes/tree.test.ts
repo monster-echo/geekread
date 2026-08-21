@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** 模拟 HN /item/{id}.json，按 id 返回 map 里的条目。 */
+/** 模拟 Algolia /items/{id}：按 id 返回 map 里的条目（含嵌套 children）。 */
 function hnFetch(map: Record<number, unknown>) {
   return vi.fn(async (_url: unknown) => {
     const url = String(_url);
-    const id = Number(url.match(/item\/(\d+)\.json/)?.[1]);
+    const id = Number(url.match(/items\/(\d+)/)?.[1]);
     const item = map[id] ?? null;
     return new Response(JSON.stringify(item), {
       status: 200,
@@ -17,15 +17,19 @@ describe('POST /api/reader/tree', () => {
   beforeEach(() => {
     vi.resetModules();
     delete process.env.REDIS_URL;
+    delete process.env.DATABASE_URL;
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('resolves the whole comment tree in one request', async () => {
+  it('resolves the whole comment tree from a single nested fetch', async () => {
     const map: Record<number, unknown> = {
-      1: { id: 1, type: 'story', title: 'S', kids: [2, 3] },
-      2: { id: 2, type: 'comment', parent: 1, text: 'c2', kids: [4] },
-      3: { id: 3, type: 'comment', parent: 1, text: 'c3', kids: [] },
-      4: { id: 4, type: 'comment', parent: 2, text: 'c4', kids: [] },
+      1: {
+        id: 1, type: 'story', title: 'S',
+        children: [
+          { id: 2, type: 'comment', parent_id: 1, text: 'c2', children: [{ id: 4, type: 'comment', parent_id: 2, text: 'c4', children: [] }] },
+          { id: 3, type: 'comment', parent_id: 1, text: 'c3', children: [] },
+        ],
+      },
     };
     globalThis.fetch = hnFetch(map);
     const { POST } = await import('../../app/api/reader/tree/route.js');

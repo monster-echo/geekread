@@ -25,10 +25,10 @@ describe('sync tick', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('warmLists 拉列表并保存', async () => {
+  it('warmLists 拉 Algolia search 列表并保存', async () => {
     const spy = mockFetch({
-      '/topstories.json': [1, 2],
-      '/newstories.json': [3],
+      '/search?tags=front_page&hitsPerPage=50': { hits: [{ objectID: '1' }, { objectID: '2' }] },
+      '/search_by_date?tags=story&hitsPerPage=50': { hits: [{ objectID: '3' }] },
     });
     const { warmLists } = await import('../lib/sync.js');
     const { readStoryList } = await import('../lib/hn-store.js');
@@ -44,8 +44,8 @@ describe('sync tick', () => {
     // 回拨超出 fresh 窗口（15min），warm 才会回源拉新头（fresh 条目跳过网络，正是增量语义）
     await __testBackdateItem(1, 20);
     const spy = mockFetch({
-      '/item/1.json': { id: 1, type: 'story', descendants: 9 },
-      '/item/2.json': { id: 2, type: 'story', descendants: 0 },
+      '/items/1': { id: 1, type: 'story', num_comments: 9 },
+      '/items/2': { id: 2, type: 'story', num_comments: 0 },
     });
     const { warmStoryHeaders } = await import('../lib/sync.js');
     const grown = await warmStoryHeaders([1, 2]);
@@ -55,37 +55,37 @@ describe('sync tick', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
-  it('warmTrees 受预算约束，只拉增长树的评论', async () => {
-    // story 1（descendants 增长，kids=[10]），评论 10 已在库且 fresh → 不再拉
-    const { upsertItems } = await import('../lib/hn-store.js');
-    await upsertItems([{ id: 1, raw: { id: 1, type: 'story', descendants: 5, kids: [10] } }]);
-    await upsertItems([{ id: 10, raw: { id: 10, type: 'comment', text: 'c' } }]);
+  it('warmTrees 受预算约束，整树一次拉取落库', async () => {
     mockFetch({
-      '/item/1.json': { id: 1, type: 'story', descendants: 8, kids: [10] },
-      '/item/10.json': { id: 10, type: 'comment', text: 'c2' },
+      '/items/1': {
+        id: 1, type: 'story', title: 'S',
+        children: [
+          { id: 10, type: 'comment', parent_id: 1, text: 'c2', children: [] },
+        ],
+      },
     });
     const { warmTrees } = await import('../lib/sync.js');
     const n = await warmTrees([1], 5);
     expect(n).toBe(1);
     const { readItems } = await import('../lib/hn-store.js');
-    // 评论 10 fresh（刚 upsert），fetchItems 不会回源它
-    expect((await readItems([10])).get(10)?.raw).toMatchObject({ text: 'c' });
+    // 整树拉取后评论 10 落库（text 来自 Algolia 嵌套树）
+    expect((await readItems([10])).get(10)?.raw).toMatchObject({ text: 'c2' });
   });
 
-  it('tick 串联三层并尊重预算', async () => {
-    const { upsertItems, saveStoryList, __testBackdateItem } = await import('../lib/hn-store.js');
-    await saveStoryList('top', [1]);
-    await upsertItems([{ id: 1, raw: { id: 1, type: 'story', descendants: 5, kids: [] } }]);
-    // story 1 需超出 fresh 窗口，warmStoryHeaders 才会回源看到 descendants:7
-    await __testBackdateItem(1, 40);
+  it('tick 串联三层并尊重预算（pullStoryList 落库完整 story）', async () => {
     mockFetch({
-      '/topstories.json': [1],
-      '/newstories.json': [],
-      '/item/1.json': { id: 1, type: 'story', descendants: 7, kids: [] },
+      '/search?tags=front_page&hitsPerPage=50': {
+        hits: [{ objectID: '1', title: 't', author: 'a', num_comments: 5, children: [10] }],
+      },
+      '/search_by_date?tags=story&hitsPerPage=50': { hits: [] },
     });
     const { tick } = await import('../lib/sync.js');
+    const { readStoryList, readItems } = await import('../lib/hn-store.js');
     const r = await tick();
-    expect(r).toMatchObject({ lists: { top: 1, latest: 0 }, trees: 1 });
+    expect(r).toMatchObject({ lists: { top: 1, latest: 0 } });
+    expect((await readStoryList('top'))?.ids).toEqual([1]);
+    // 列表层已把完整 story 对象落库（children→kids、num_comments→descendants）
+    expect((await readItems([1])).get(1)?.raw).toMatchObject({ title: 't', descendants: 5, kids: [10] });
   });
 
   it('上游全挂时 tick 不抛（降级语义，下个 tick 再试）', async () => {
