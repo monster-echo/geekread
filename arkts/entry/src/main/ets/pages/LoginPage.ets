@@ -314,7 +314,7 @@ export struct LoginPage {
 
   // ── Password Form (inline) ──────────────────────────────────────
 
-  @Builder
+   @Builder
   PasswordFormSection() {
     Column() {
       Text('用户名')
@@ -380,16 +380,15 @@ export struct LoginPage {
           Text('登录')
             .fontSize(16)
             .fontWeight(FontWeight.Medium)
-            .fontColor(AppColors.onBrand)
+            .fontColor(this.username.length > 0 && this.password.length > 0 ? AppColors.onBrand : AppColors.textSecondary)
         }
       }
       .width('100%')
       .height(48)
       .borderRadius(24)
-      .backgroundColor(AppColors.brand)
+      .backgroundColor(this.username.length > 0 && this.password.length > 0 ? AppColors.brand : AppColors.surfaceMuted)
       .margin({ top: 20 })
       .enabled(this.username.length > 0 && this.password.length > 0 && !this.isPasswordLoading)
-      .opacity(this.username.length > 0 && this.password.length > 0 ? 1 : 0.5)
       .onClick(() => {
         this.handlePasswordLogin()
       })

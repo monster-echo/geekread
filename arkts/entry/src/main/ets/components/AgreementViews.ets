@@ -75,7 +75,7 @@ export struct AgreementRow {
         .layoutWeight(1)
     }
     .width('100%')
-    .alignItems(VerticalAlign.Top)
+    .alignItems(VerticalAlign.Center)
   }
 }
 
