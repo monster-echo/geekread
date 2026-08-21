@@ -54,6 +54,25 @@ export class LocalStore {
     this.store?.flush()
   }
 
+  /** 通用 JSON 缓存读取（key 由调用方约定，序列化失败/缺失返回 null）。 */
+  readJson<T>(key: string): T | null {
+    const value = String(this.store?.getSync(key, '') ?? '')
+    if (value.length === 0) {
+      return null
+    }
+    try {
+      return JSON.parse(value) as T
+    } catch (error) {
+      return null
+    }
+  }
+
+  /** 通用 JSON 缓存写入。 */
+  saveJson(key: string, value: object): void {
+    this.store?.putSync(key, JSON.stringify(value))
+    this.store?.flush()
+  }
+
   readTheme(): string {
     return String(this.store?.getSync(THEME_KEY, 'system') ?? 'system')
   }

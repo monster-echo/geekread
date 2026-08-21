@@ -5,13 +5,12 @@ import { AsyncStatus } from '../../../state/AsyncState'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
 import { AppIcon, AppIconName } from '../../../design_system/AppIcon'
 import { localized, appString, AppString } from '../../../localization/AppStrings'
-import { fetchQuota, fetchStories, fetchStoriesResolved, ReaderQuota } from '../data/GeekReaderApiClient'
+import { fetchQuota, fetchStories, ReaderQuota } from '../data/GeekReaderApiClient'
+import { readStories, saveStories } from '../data/StoryCache'
 import { resetQuotaGate } from '../application/TranslationCache'
 import { Story } from '../domain/Models'
 import { telemetry } from '../../../telemetry/Telemetry'
 import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
-
-const PAGE: number = 20
 
 @Component
 export struct GeekReaderPage {
@@ -32,42 +31,52 @@ export struct GeekReaderPage {
 
   aboutToAppear(): void {
     // 页面由 Navigation 压栈保留，aboutToAppear 只在首次触发——回来不会重刷。
+    // 先同步渲染上次缓存（毫秒级秒开），再后台刷新覆盖。
+    this.renderFromCache()
     this.load('top')
     this.load('latest')
   }
 
+  /** 冷启动从磁盘缓存同步填充列表，立即渲染（不闪 loading）。 */
+  private renderFromCache(): void {
+    const top = readStories('top')
+    if (top !== null && top.length > 0) {
+      this.topStories = top
+      this.topIds = top.map((s: Story) => s.id)
+      this.topStatus = AsyncStatus.Success
+    }
+    const latest = readStories('latest')
+    if (latest !== null && latest.length > 0) {
+      this.latestStories = latest
+      this.latestIds = latest.map((s: Story) => s.id)
+      this.latestStatus = AsyncStatus.Success
+    }
+  }
+
   private async load(type: string): Promise<void> {
-    this.setStatus(type, AsyncStatus.Loading)
+    const hasContent = (type === 'top' ? this.topStories : this.latestStories).length > 0
+    // 有缓存时保持内容可见（后台刷新），无缓存才显示 loading。
+    if (!hasContent) this.setStatus(type, AsyncStatus.Loading)
     try {
-      const ids = await fetchStories(type)
-      if (type === 'top') this.topIds = ids.ids; else this.latestIds = ids.ids
-      const result = await fetchStoriesResolved(ids.ids.slice(0, PAGE))
-      this.putStories(type, result)
-      this.setStatus(type, result.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success)
+      const stories = await fetchStories(type)
+      this.putStories(type, stories)
+      this.putIds(type, stories.map((s: Story) => s.id))
+      saveStories(type, stories)
+      this.setStatus(type, stories.length === 0 ? AsyncStatus.Empty : AsyncStatus.Success)
     } catch (e) {
-      this.errorMessage = e instanceof Error ? e.message : '网络错误'
-      telemetry.report(new Error(`stories_fetch_failed_${type}: ${this.errorMessage}`))
-      this.setStatus(type, AsyncStatus.Error)
+      // 有缓存内容时静默保留（避免 Error 覆盖已渲染列表）；无缓存才报错。
+      if (!hasContent) {
+        this.errorMessage = e instanceof Error ? e.message : '网络错误'
+        telemetry.report(new Error(`stories_fetch_failed_${type}: ${this.errorMessage}`))
+        this.setStatus(type, AsyncStatus.Error)
+      }
     } finally {
       this.refreshing = false
     }
   }
 
   private async loadMore(type: string): Promise<void> {
-    if (this.loadingMore) return
-    const ids = type === 'top' ? this.topIds : this.latestIds
-    const stories = type === 'top' ? this.topStories : this.latestStories
-    if (ids.length === 0 || stories.length >= ids.length) return
-    this.loadingMore = true
-    try {
-      const next = ids.slice(stories.length, stories.length + PAGE)
-      const result = await fetchStoriesResolved(next)
-      this.putStories(type, stories.concat(result))
-    } catch (e) {
-      // 静默：footer 状态自动随 loadingMore 消失
-    } finally {
-      this.loadingMore = false
-    }
+    // 列表已由 fetchStories 一次拉全（完整 story），无需再分页请求；保留空实现。
   }
 
   private isNoMore(type: string): boolean {
@@ -82,6 +91,10 @@ export struct GeekReaderPage {
 
   private putStories(type: string, arr: Story[]): void {
     if (type === 'top') this.topStories = arr; else this.latestStories = arr
+  }
+
+  private putIds(type: string, ids: number[]): void {
+    if (type === 'top') this.topIds = ids; else this.latestIds = ids
   }
 
   private refresh(): void {

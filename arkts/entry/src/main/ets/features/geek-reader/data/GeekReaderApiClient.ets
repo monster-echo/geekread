@@ -41,12 +41,6 @@ export interface TranslateResponse {
   remainingTranslations?: number
 }
 
-export interface StoriesResponse {
-  ids: number[]
-  cached: boolean
-  stale: boolean
-}
-
 export interface ItemsResponse {
   items: (HNItem | null)[]
   cached: boolean
@@ -108,9 +102,16 @@ async function send(path: string, method: http.RequestMethod, body?: string): Pr
   }
 }
 
-export async function fetchStories(type: string): Promise<StoriesResponse> {
+/** 首页列表：一次请求返回完整 story（后端已合并列表+条目），映射为 Story[]。 */
+export async function fetchStories(type: string): Promise<Story[]> {
   const text = await send(`/api/reader/stories?type=${type}`, http.RequestMethod.GET)
-  return JSON.parse(text) as StoriesResponse
+  const res = JSON.parse(text) as ItemsResponse
+  const out: Story[] = []
+  for (let i = 0; i < res.items.length; i++) {
+    const s = toStory(res.items[i])
+    if (s !== null) out.push(s)
+  }
+  return out
 }
 
 export async function fetchItems(ids: number[]): Promise<ItemsResponse> {
@@ -151,16 +152,6 @@ export async function summarizeStory(req: SummarizeRequest): Promise<string> {
   const text = await send(`/api/reader/summarize`, http.RequestMethod.POST, JSON.stringify(req))
   const res = JSON.parse(text) as SummarizeResponse
   return res.summary
-}
-
-export async function fetchStoriesResolved(ids: number[]): Promise<Story[]> {
-  const res = await fetchItems(ids)
-  const out: Story[] = []
-  for (let i = 0; i < res.items.length; i++) {
-    const s = toStory(res.items[i])
-    if (s !== null) out.push(s)
-  }
-  return out
 }
 
 export interface ReaderQuota {
