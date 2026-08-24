@@ -112,6 +112,7 @@ export struct SupportHomePage {
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
     }.width('100%').height('100%')
   }
 }
@@ -148,6 +149,7 @@ export struct SupportTicketPage {
             }.padding(AppSpacing.x4)
           }.layoutWeight(1)
           .align(Alignment.TopStart)
+          .edgeEffect(EdgeEffect.Spring)
           Row({ space: AppSpacing.x2 }) {
             TextInput({ placeholder: '回复内容', text: this.reply })
               .layoutWeight(1).height(48).backgroundColor(AppColors.surface).border({ width: 1, color: AppColors.borderStrong }).borderRadius(AppRadii.control)
@@ -220,6 +222,7 @@ export struct NewSupportTicketPage {
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
     }.width('100%').height('100%')
   }
 
@@ -276,6 +279,7 @@ export struct ProductFeedbackPage {
         }.padding(AppSpacing.x4)
       }.layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
     }.width('100%').height('100%')
   }
 

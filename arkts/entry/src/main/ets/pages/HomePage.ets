@@ -102,6 +102,7 @@ export struct HomePage {
       }
       .layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
     }
     .width('100%')
     .height('100%')

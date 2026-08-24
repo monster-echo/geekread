@@ -59,6 +59,7 @@ export struct NotificationPage {
             .onClick(() => this.open(item))
           })
         }.padding(AppSpacing.x4).layoutWeight(1)
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       } else {
         Column({ space: AppSpacing.x4 }) {
           Text(this.remote.notificationState.message ?? '加载失败')

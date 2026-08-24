@@ -288,6 +288,9 @@ export struct GeekReaderPage {
                   .onScrollIndex((start: number, end: number) => {
                     if (this.topStories.length > 0 && end >= this.topStories.length - 5) this.loadMore('top')
                   })
+                  // 边界回弹反馈（上架 UX 检测项）；alwaysEnabled:false 与 List 默认一致，
+                  // 短列表时不消费下拉手势，保证外层 Refresh 下拉刷新可用。
+                  .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.topStatus, this.errorMessage)
@@ -312,6 +315,7 @@ export struct GeekReaderPage {
                   .onScrollIndex((start: number, end: number) => {
                     if (this.latestStories.length > 0 && end >= this.latestStories.length - 5) this.loadMore('latest')
                   })
+                  .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
                 }.onRefreshing(() => this.refresh()).layoutWeight(1).width('100%')
               } else {
                 this.StatusView(this.latestStatus, this.errorMessage)

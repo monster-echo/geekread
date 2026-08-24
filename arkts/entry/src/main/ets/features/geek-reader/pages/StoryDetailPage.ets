@@ -455,6 +455,8 @@ export struct StoryDetailPage {
             .align(Alignment.TopStart)
             .layoutWeight(1)
             .onReachEnd(() => this.onCommentsEnd())
+            // 边界回弹反馈；alwaysEnabled:false——短内容时不消费下拉手势，保证 Refresh 下拉刷新
+            .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: false })
           }
           .onRefreshing(() => this.refresh())
           .layoutWeight(1)

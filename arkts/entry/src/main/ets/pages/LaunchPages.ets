@@ -10,38 +10,34 @@ import { SplashConfig } from '../domain/Models'
 //
 // 阶段：
 //  1. loading：logo + appName + tagline + 加载指示 + "加载中…"
-//     等待「最短展示 1s AND 初始 bootstrap 完成」（8s 兜底防 fetch 挂死）
-//  2. bootstrap 完成后判断：splash==null 或 离线 → 直进首页；
-//     在线且有 splash → 品牌闪屏（倒计时用 durationSeconds）→ home
+//     无固定最短展示——磁盘缓存配置读完（localReady）即决策。系统启动页自带
+//     200ms 渐隐过渡，logo 阶段被自然覆盖，无需 App 内品牌停顿；
+//     冷启动首页加载完成时延合规（上架检测「启动加载完成快」≤1100ms）。
+//  2. 有缓存闪屏配置时等 bootstrap 确认最新配置（8s 兜底防 fetch 挂死）：
+//     splash==null 或 离线 → 直进首页；在线且有 splash → 品牌闪屏 → home
 
-const MIN_LOGO_DELAY_MS: number = 1000
 const MAX_SPLASH_WAIT_MS: number = 8000
 
 @Component
 export struct SplashPage {
   @ObjectLink @Watch('onStoreChanged') store: AppStore
-  @State minElapsed: boolean = false
   @State countdown: number = -1 // -1 = loading 阶段；>=0 = 品牌闪屏阶段
   // struct 不支持 get 访问器（编译产物会静默丢弃），进入闪屏阶段时快照到 @State。
   // getter 每次重渲染重读 config 的语义也不对：闪屏展示中途不应被配置变化打断。
   @State splash: SplashConfig | null = null
-  private minTimer: number = -1
   private maxTimer: number = -1
   private countdownTimer: number = -1
   private advancing: boolean = false
   private done: boolean = false
 
   aboutToAppear(): void {
-    this.minTimer = setTimeout(() => {
-      this.minElapsed = true
-      this.maybeAdvance()
-    }, MIN_LOGO_DELAY_MS)
     // fetch 无显式超时，最长等待兜底，避免一直卡在 loading
     this.maxTimer = setTimeout(() => this.goHome(), MAX_SPLASH_WAIT_MS)
+    // localReady 可能已置位（防御性直查，正常路径靠 @Watch 触发）
+    this.maybeAdvance()
   }
 
   aboutToDisappear(): void {
-    if (this.minTimer !== -1) clearTimeout(this.minTimer)
     if (this.maxTimer !== -1) clearTimeout(this.maxTimer)
     if (this.countdownTimer !== -1) clearInterval(this.countdownTimer)
   }
@@ -52,8 +48,15 @@ export struct SplashPage {
 
   maybeAdvance(): void {
     if (this.advancing || this.countdown !== -1) return
-    if (!this.minElapsed || !this.store.bootstrapped) return
+    if (!this.store.localReady) return // 磁盘缓存配置未读完：等 @Watch 触发（毫秒级）
     const splash = this.store.config?.splash ?? null
+    if (splash === null && !this.store.bootstrapped) {
+      // 无缓存闪屏配置（含首次安装）：不等网络 bootstrap 直接进首页，
+      // bootstrap 继续后台完成；冷启动首页加载完成时延合规（≤1100ms）。
+      this.goHome()
+      return
+    }
+    if (!this.store.bootstrapped) return // 有缓存闪屏 → 等 bootstrap 拉最新配置（8s 兜底）
     if (splash === null || !this.store.online) {
       this.goHome() // 未配置闪屏或离线 → 直接进首页
       return

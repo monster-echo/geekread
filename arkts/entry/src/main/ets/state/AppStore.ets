@@ -69,6 +69,9 @@ export class AppStore {
   detailTitle: string = ''
   // bootstrapped：初始 bootstrap 是否完成（成功或失败）；品牌闪屏据此判断"配置拉取完成"。
   bootstrapped: boolean = false
+  // localReady：本地启动数据（preferences + 磁盘缓存 config）已同步进内存。
+  // SplashPage 据此判断"缓存闪屏配置已读到"：无缓存配置时立即进首页，不等网络。
+  localReady: boolean = false
   // splashDone：启动流程（splash）是否已完成。完成后根内容换成主界面，
   // 避免登录页/会话过期 replaceAll 后返回 pop 空栈时回到 splash。
   splashDone: boolean = false
@@ -116,6 +119,7 @@ export class AppStore {
     if (cached !== null) {
       this.config = cached
     }
+    this.localReady = true
     const token = localStore.readToken()
     apiClient.setToken(token)
     apiClient.setRefreshToken(localStore.readRefreshToken())

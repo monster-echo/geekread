@@ -99,6 +99,7 @@ export struct GeekMemberPage {
     .width('100%')
     }.layoutWeight(1)
     .align(Alignment.TopStart)
+    .edgeEffect(EdgeEffect.Spring)
   }
 
   private buy(plan: BillingPlan): void {

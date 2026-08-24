@@ -114,6 +114,7 @@ export struct ProfilePage {
         }
         .layoutWeight(1)
         .align(Alignment.TopStart)
+        .edgeEffect(EdgeEffect.Spring)
       }
     }
     .width('100%')
@@ -280,6 +281,7 @@ export struct MembershipPage {
       }
       .layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
       BottomTabs({ store: this.store, selected: AppRoute.Membership })
     }
     .width('100%')

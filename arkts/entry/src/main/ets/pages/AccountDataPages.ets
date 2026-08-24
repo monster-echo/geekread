@@ -36,6 +36,7 @@ export struct SessionsPage {
             }
           })
         }.padding(AppSpacing.x4).layoutWeight(1)
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       } else {
         EmptyCopy({ message: this.remote.sessionState.message ?? '加载失败，请重试。',
           retry: () => this.remote.loadSessions() })
@@ -76,6 +77,7 @@ export struct OrdersPage {
             }
           })
         }.padding(AppSpacing.x4).layoutWeight(1)
+        .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
       } else {
         EmptyCopy({ message: this.remote.orderState.message ?? '加载失败，请重试。',
           retry: () => this.remote.loadOrders() })

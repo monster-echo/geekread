@@ -96,6 +96,7 @@ export struct LanguagePreferencePage {
         }.padding(AppSpacing.x4).alignItems(HorizontalAlign.Start)
       }.layoutWeight(1)
       .align(Alignment.TopStart)
+      .edgeEffect(EdgeEffect.Spring)
     }.width('100%').height('100%')
   }
 
