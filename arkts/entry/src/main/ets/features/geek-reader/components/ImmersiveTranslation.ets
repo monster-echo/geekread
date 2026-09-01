@@ -6,20 +6,6 @@ import { TargetLanguage } from '../domain/Models'
 import { Markdown, MarkdownController } from '@luvi/lv-markdown-in'
 import { telemetry } from '../../../telemetry/Telemetry'
 
-function labelOf(lang: TargetLanguage | null): string {
-  if (lang === 'zh-Hans') return '简体中文'
-  if (lang === 'zh-Hant') return '繁體中文'
-  if (lang === 'ja') return '日本語'
-  if (lang === 'ko') return '한국어'
-  if (lang === 'ms') return 'Bahasa Melayu'
-  if (lang === 'id') return 'Bahasa Indonesia'
-  if (lang === 'th') return 'ไทย'
-  if (lang === 'vi') return 'Tiếng Việt'
-  if (lang === 'ar') return 'العربية'
-  if (lang === 'en') return 'English'
-  return '简体中文'
-}
-
 /** 只解码 HTML 实体（&#2f; &amp; &lt; 等），保留标签。 */
 function decodeEntities(html: string): string {
   return html
@@ -205,7 +191,7 @@ export struct ImmersiveTranslation {
           if (this.result.length > 0) {
             // 《人工智能生成合成内容标识办法》显式标识：文字须同时含"AI"+"生成"两要素
             Column({ space: AppSpacing.x1 }) {
-              Text(`${appString(AppString.AIGeneratedTranslation, this.locale)} · ${labelOf(this.langOf())}`)
+              Text(appString(AppString.AIGeneratedTranslation, this.locale))
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result).fontSize(14).letterSpacing(0.8).fontColor(AppColors.text).width('100%')
@@ -236,7 +222,7 @@ export struct ImmersiveTranslation {
           } else if (this.result.length > 0) {
             Column({ space: AppSpacing.x1 }) {
               // 合规显式标识：文字须同时含"AI"+"生成"两要素，不能只写"译"
-              Text(`${appString(AppString.AIGeneratedTranslation, this.locale)} · ${labelOf(this.langOf())}`)
+              Text(appString(AppString.AIGeneratedTranslation, this.locale))
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result)
