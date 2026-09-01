@@ -65,6 +65,7 @@ export enum AppString {
   LoadingMore,
   OriginalText,
   Translated,
+  AIGeneratedTranslation,
   TranslationFailed,
   BackendHint,
   Retry,
@@ -148,6 +149,7 @@ function resName(key: AppString): string {
     case AppString.LoadingMore: return 'loading_more'
     case AppString.OriginalText: return 'original_text'
     case AppString.Translated: return 'translated'
+    case AppString.AIGeneratedTranslation: return 'ai_generated_translation'
     case AppString.TranslationFailed: return 'translation_failed'
     case AppString.BackendHint: return 'backend_hint'
     case AppString.Retry: return 'retry'

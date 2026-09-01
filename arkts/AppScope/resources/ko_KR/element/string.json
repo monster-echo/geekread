@@ -229,6 +229,10 @@
       "value": "번역"
     },
     {
+      "name": "ai_generated_translation",
+      "value": "AI 생성"
+    },
+    {
       "name": "translation_failed",
       "value": "번역 실패"
     },

@@ -229,6 +229,10 @@
       "value": "แปลแล้ว"
     },
     {
+      "name": "ai_generated_translation",
+      "value": "แปลโดย AI"
+    },
+    {
       "name": "translation_failed",
       "value": "การแปลล้มเหลว"
     },

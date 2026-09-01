@@ -1,4 +1,5 @@
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
+import { appString, AppString } from '../../../localization/AppStrings'
 import { deriveTargetLanguage } from '../application/Locale'
 import { translate } from '../application/TranslationCache'
 import { TargetLanguage } from '../domain/Models'
@@ -204,7 +205,7 @@ export struct ImmersiveTranslation {
           if (this.result.length > 0) {
             // 《人工智能生成合成内容标识办法》显式标识：文字须同时含"AI"+"生成"两要素
             Column({ space: AppSpacing.x1 }) {
-              Text(`AI生成译文 · ${labelOf(this.langOf())}`)
+              Text(`${appString(AppString.AIGeneratedTranslation, this.locale)} · ${labelOf(this.langOf())}`)
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result).fontSize(14).letterSpacing(0.8).fontColor(AppColors.text).width('100%')
@@ -235,7 +236,7 @@ export struct ImmersiveTranslation {
           } else if (this.result.length > 0) {
             Column({ space: AppSpacing.x1 }) {
               // 合规显式标识：文字须同时含"AI"+"生成"两要素，不能只写"译"
-              Text(`AI生成译文 · ${labelOf(this.langOf())}`)
+              Text(`${appString(AppString.AIGeneratedTranslation, this.locale)} · ${labelOf(this.langOf())}`)
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result)

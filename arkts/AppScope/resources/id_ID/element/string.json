@@ -229,6 +229,10 @@
       "value": "Diterjemahkan"
     },
     {
+      "name": "ai_generated_translation",
+      "value": "Diterjemahkan oleh AI"
+    },
+    {
       "name": "translation_failed",
       "value": "Terjemahan gagal"
     },
