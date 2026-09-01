@@ -90,15 +90,11 @@ export struct SplashPage {
 
   build() {
     if (this.countdown === -1) {
-      // 阶段 loading：logo + appName + tagline + 加载指示 + "加载中…"
+      // 阶段 loading：只保留 logo + 加载指示。应用名/标语不再展示——
+      // 名称来自远端 bootstrap 配置，未就绪时的窗口不显示任何品牌文字。
       Column({ space: AppSpacing.x3 }) {
-        Image($r('app.media.app_icon')).width(48).height(48).borderRadius(12)
-        Text(this.store.config?.brand.appName ?? 'MobileUI')
-          .fontSize(28).fontWeight(FontWeight.Bold)
-        Text(this.store.config?.brand.tagline ?? '')
-          .fontColor(AppColors.textSecondary).fontSize(14)
+        Image($r('app.media.app_icon')).width(64).height(64).borderRadius(14)
         LoadingProgress().width(24).height(24).color(AppColors.brand)
-        Text('加载中…').fontColor(AppColors.brand).fontSize(14)
       }
       .width('100%').height('100%')
       .justifyContent(FlexAlign.Center)

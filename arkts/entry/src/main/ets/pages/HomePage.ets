@@ -16,7 +16,7 @@ export struct HomePage {
           Text(localized('下午好', 'Good afternoon', this.store.language))
             .fontSize(13).fontColor(AppColors.textSecondary)
           Text(`${localized('欢迎使用', 'Welcome to', this.store.language)} ` +
-            `${this.store.config?.brand.appName ?? 'MobileUI'}`)
+            `${this.store.config?.brand.appName ?? localized('极客译读', 'GeekRead', this.store.language)}`)
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
         }

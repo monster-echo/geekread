@@ -306,7 +306,7 @@ export struct AboutPage {
       PageHeader({ store: this.store, title: '关于与版本' })
       Column() {
         AppListRow({ store: this.store, label: '产品',
-          value: this.store.config?.brand.appName ?? 'MobileUI' })
+          value: this.store.config?.brand.appName ?? appString(AppString.GeekReaderTitle, this.store.language) })
         AppListRow({ store: this.store, label: '客户端版本', value: this.version })
         AppListRow({ store: this.store, label: '配置版本',
           value: `v${this.store.config?.version ?? 0}` })
