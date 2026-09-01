@@ -64,6 +64,8 @@ export struct ImmersiveTranslation {
   @Prop locale: string
   @Prop displayMode: string = 'both' // 'original' | 'translation' | 'both'
   @Prop free: boolean = false // true=免费通道（不扣配额）：列表标题/详情正文
+  // 评论翻译的所属 topic（story）。带上后服务端按 topic 计配额：同一篇内滚动翻译只扣 1 次
+  @Prop topicId: number = 0
   // true=markdown 富文本（Markdown，正文/评论）；false=纯文本 Text（标题，dark 下清晰）
   @Prop rich: boolean = true
   @State result: string = ''
@@ -121,7 +123,7 @@ export struct ImmersiveTranslation {
     if (l === null) return
     this.loading = true
     this.failed = false
-    translate(this.clean(), l, this.free)
+    translate(this.clean(), l, this.free, this.topicId)
       .then((t: string) => {
         if (typeof t === 'string' && t.length > 0 && t !== 'undefined') {
           this.result = t
@@ -207,7 +209,7 @@ export struct ImmersiveTranslation {
                 LoadingProgress().width(18).height(18)
               } else if (this.failed) {
                 if (this.isQuota) {
-                  Text('今日免费翻译已用完 · 升级 Pro 可继续')
+                  Text('今日免费话题已用完 · 升级 Pro 可继续')
                     .fontSize(11).fontColor(AppColors.brand).fontWeight(FontWeight.Bold)
                 } else {
                   Text(`翻译失败：${this.failedMsg}`).fontSize(11).fontColor(AppColors.textSecondary)

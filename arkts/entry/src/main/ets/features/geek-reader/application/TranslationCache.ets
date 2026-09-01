@@ -5,6 +5,8 @@ interface Pending {
   text: string
   lang: TargetLanguage
   free: boolean
+  /** 所属 topic（story）；>0 时服务端按 topic 计配额（同篇只扣 1 次） */
+  topicId: number
   resolve: (t: string) => void
   reject: (e: Error) => void
 }
@@ -88,7 +90,8 @@ function takeChunk(): Pending[] {
   let chars: number = 0
   for (let i = 0; i < queue.length; i++) {
     const it = queue[i]
-    if (it.lang !== head.lang || it.free !== head.free ||
+    // 同 chunk 要求 lang+free+topicId 一致：不同 story 的评论混批会错误归属配额
+    if (it.lang !== head.lang || it.free !== head.free || it.topicId !== head.topicId ||
       chunk.length >= MAX_ENTRIES || chars + it.text.length > MAX_TOTAL_CHARS) {
       rest.push(it)
       continue
@@ -115,11 +118,17 @@ async function dispatchChunk(chunk: Pending[]): Promise<void> {
   for (let i = 0; i < chunk.length; i++) {
     entries.push({ key: String(i), text: chunk[i].text })
   }
-  const req: TranslateRequest = { targetLanguage: lang, entries, free: chunk[0].free === true }
+  const req: TranslateRequest = {
+    targetLanguage: lang,
+    entries,
+    free: chunk[0].free === true,
+    // topic 归口：>0 时服务端按 topic 计配额，同篇后续批次不再扣
+    topicId: chunk[0].topicId > 0 ? chunk[0].topicId : undefined
+  }
   try {
     const res: TranslateResponse = await translateBatch(req)
-    // 配额熔断：remaining=0 或任一条目 quota_exceeded 即触发（仅非免响应携带）
-    if (res.remainingTranslations === 0) tripQuotaGate()
+    // 配额熔断：剩余（topic 或按条的 legacy 口径）为 0 或任一 quota_exceeded 即触发
+    if ((res.remainingTopics ?? res.remainingTranslations ?? 1) === 0) tripQuotaGate()
     for (let i = 0; i < chunk.length; i++) {
       const r = res.results[i]
       if (r !== undefined && r.translation !== undefined && r.translation.length > 0) {
@@ -162,7 +171,7 @@ function flush(): void {
   pump()
 }
 
-export function translate(text: string, lang: TargetLanguage, free: boolean = false): Promise<string> {
+export function translate(text: string, lang: TargetLanguage, free: boolean = false, topicId: number = 0): Promise<string> {
   // 空文本（链接/图片型评论 HTML 清洗后为空）：无物可译，直接返回空串，
   // 不进队列不发请求（曾污染整批触发服务端 400）。
   if (text.trim().length === 0) return Promise.resolve('')
@@ -177,7 +186,7 @@ export function translate(text: string, lang: TargetLanguage, free: boolean = fa
   const flying = inFlight.get(k)
   if (flying !== undefined) return flying
   const p = new Promise<string>((resolve, reject) => {
-    incoming.push({ text, lang, free, resolve, reject })
+    incoming.push({ text, lang, free, topicId, resolve, reject })
     scheduleFlush()
   })
   inFlight.set(k, p)

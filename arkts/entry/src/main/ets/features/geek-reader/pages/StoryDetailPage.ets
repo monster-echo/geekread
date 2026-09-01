@@ -435,7 +435,7 @@ export struct StoryDetailPage {
                       (fc.node.replies.length > 0 ? ` · ${this.collapsed.includes(fc.node.id) ? '+' : '−'}${fc.node.replies.length}` : ''))
                       .fontSize(12).fontColor(AppColors.textSecondary)
                       .onClick(() => this.toggle(fc.node.id))
-                    ImmersiveTranslation({ text: fc.node.text, locale: this.store.language, displayMode: this.store.translationDisplayMode })
+                    ImmersiveTranslation({ text: fc.node.text, locale: this.store.language, displayMode: this.store.translationDisplayMode, topicId: this.story === null ? 0 : this.story.id })
                   }
                 }
                 .alignItems(HorizontalAlign.Start)

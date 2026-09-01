@@ -1,7 +1,9 @@
 import { hasProEntitlement } from '../../../lib/entitlement';
 import { errorResponse, json, safeErrorStatus } from '../../../lib/http';
+import { env } from '../../../lib/env';
 import { translateWithModel } from '../../../lib/model';
-import { reserveDaily, today } from '../../../lib/quota';
+import { reserveDaily, today, topicLimitFor } from '../../../lib/quota';
+import { reserveTopicTranslation } from '../../../lib/quota-store';
 import { cacheTranslation, getCachedTranslation } from '../../../lib/cache-store';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
@@ -35,6 +37,11 @@ export async function POST(request: Request): Promise<Response> {
     if (!SUPPORTED.has(targetLanguage)) throw new Error('unsupported_target_language');
     // free=true 走免费通道（不扣配额）：列表标题/详情正文，用于留存。
     const isFree = (payload as { free?: unknown }).free === true;
+    // topic 计费：评论翻译批次带 storyId，同一篇 topic 当日首次请求解锁（+1 topic），
+    // 之后的批次不多扣，只计入该 topic 的批数上限；不带 storyId 的旧客户端走 legacy 按条扣。
+    const rawStoryId = (payload as { storyId?: unknown }).storyId;
+    const storyId: number | undefined =
+      typeof rawStoryId === 'number' && Number.isSafeInteger(rawStoryId) && rawStoryId > 0 ? rawStoryId : undefined;
     const rawEntries = (payload as { entries?: unknown }).entries;
     if (!Array.isArray(rawEntries) || rawEntries.length === 0) {
       throw new Error('invalid_request: entries missing or empty');
@@ -59,8 +66,11 @@ export async function POST(request: Request): Promise<Response> {
 
     const day = today();
     const results: Result[] = new Array(entries.length);
-    let remaining: number | undefined;
+    let legacyRemaining: number | undefined;
+    let topicRemaining: number | undefined;
     let nextIndex = 0;
+    // topic 模式批次级标记：同一批内只做一次 quota 裁决（首个未命中缓存的条目触发）
+    let topicReserved = false;
 
     async function worker(): Promise<void> {
       while (nextIndex < entries.length) {
@@ -85,15 +95,28 @@ export async function POST(request: Request): Promise<Response> {
             }
             continue;
           }
-          const reservation = await reserveDaily(day, clientId, isPro);
-          if (!reservation.allowed) { results[index] = { key: entry.key, error: 'quota_exceeded' }; remaining = 0; continue; }
-          remaining = remaining === undefined ? reservation.remaining : Math.min(remaining, reservation.remaining);
+          let rollback: (() => Promise<void>) | undefined;
+          if (storyId !== undefined) {
+            // topic 配额：一批只裁决一次；同 topic 后续批次不再多扣
+            if (!topicReserved) {
+              topicReserved = true;
+              const reservation = await reserveTopicTranslation(day, clientId, storyId, topicLimitFor(isPro), env().topicRequestCap);
+              if (!reservation.allowed) { results[index] = { key: entry.key, error: 'quota_exceeded' }; topicRemaining = 0; continue; }
+              topicRemaining = reservation.remainingTopics;
+            }
+          } else {
+            // legacy 按条扣（旧客户端无 storyId）
+            const reservation = await reserveDaily(day, clientId, isPro);
+            if (!reservation.allowed) { results[index] = { key: entry.key, error: 'quota_exceeded' }; legacyRemaining = 0; continue; }
+            legacyRemaining = legacyRemaining === undefined ? reservation.remaining : Math.min(legacyRemaining, reservation.remaining);
+            rollback = reservation.rollback;
+          }
           try {
             const translation = await translateWithModel(entry.text, targetLanguage);
             await cacheTranslation(entry.text, targetLanguage, translation);
             results[index] = { key: entry.key, translation };
           } catch (error) {
-            await reservation.rollback();
+            if (rollback) await rollback();
             results[index] = { key: entry.key, error: error instanceof Error ? error.message : 'translation_failed' };
           }
         } catch (error) {
@@ -104,7 +127,11 @@ export async function POST(request: Request): Promise<Response> {
 
     // 并发 8：20 条/批 × 单条 ~3.8s，4 并发要 ~19s 会触发客户端 15s 超时；8 并发 ~11s
   await Promise.all(Array.from({ length: Math.min(8, entries.length) }, () => worker()));
-    return json({ results, ...(remaining === undefined ? {} : { remainingTranslations: remaining }) });
+    return json({
+      results,
+      ...(topicRemaining === undefined ? {} : { remainingTopics: topicRemaining }),
+      ...(legacyRemaining === undefined ? {} : { remainingTranslations: legacyRemaining }),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';
     // 临时诊断：打印失败请求摘要，定位 invalid_request 具体来源

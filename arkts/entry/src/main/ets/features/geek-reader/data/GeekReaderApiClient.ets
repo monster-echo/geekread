@@ -27,6 +27,8 @@ export interface TranslateRequest {
   targetLanguage: TargetLanguage
   entries: TranslateEntry[]
   free?: boolean
+  /** 评论翻译的所属 topic（story）。带上后服务端按 topic 计配额：同篇只扣 1 次 */
+  topicId?: number
 }
 
 export interface TranslateResult {
@@ -38,6 +40,9 @@ export interface TranslateResult {
 
 export interface TranslateResponse {
   results: TranslateResult[]
+  /** topic 计费（带 storyId 的请求）返回剩余可翻译话题数 */
+  remainingTopics?: number
+  /** legacy 按条计费（无 storyId）返回剩余可翻译条数 */
   remainingTranslations?: number
 }
 

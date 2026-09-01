@@ -59,13 +59,23 @@ model Summary {
   createdAt DateTime @default(now())
 }
 
-/// 每日翻译配额（原子 upsert 计数）
+/// 每日翻译配额：used 按 topic（story）计数，解锁一篇算 1 次
 model QuotaUsage {
   day      String
   clientId String
   used     Int      @default(0)
 
   @@id([day, clientId])
+}
+
+/// 每日每篇 topic 的翻译请求批数（防超高楼帖子烧 LLM 成本）
+model TopicUsage {
+  day      String
+  clientId String
+  storyId  Int
+  requests Int      @default(0)
+
+  @@id([day, clientId, storyId])
 }
 
 /// 内容举报（替代 Redis list geekread:reports）
