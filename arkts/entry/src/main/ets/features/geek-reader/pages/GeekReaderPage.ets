@@ -209,7 +209,7 @@ export struct GeekReaderPage {
             .color(AppColors.brand).backgroundColor(AppColors.surfaceMuted).width('100%')
         }
         Row() {
-          Text(this.quota === null ? '额度暂不可用' : `已用 ${this.quota.used}/${this.quota.limit} 次`)
+          Text(this.quota === null ? '额度暂不可用' : `已用 ${this.quota.used}/${this.quota.limit} 篇评论翻译`)
             .fontSize(12).fontColor(AppColors.text).layoutWeight(1)
           Text(this.store.user?.tierId === 'pro' ? 'Pro ✓' : '升级 Pro')
             .fontSize(14).fontColor(AppColors.brand).fontWeight(FontWeight.Bold)
