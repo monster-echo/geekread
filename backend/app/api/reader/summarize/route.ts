@@ -1,4 +1,5 @@
 import { errorResponse, json, requireString, safeErrorStatus } from '../../../../lib/http';
+import { aiMetadata } from '../../../../lib/ai-metadata';
 import { summarizeWithModel } from '../../../../lib/model';
 import { cacheSummary, getCachedSummary } from '../../../../lib/cache-store';
 
@@ -32,11 +33,12 @@ export async function POST(request: Request): Promise<Response> {
     const comments: string[] = rawComments.map((v) => requireString(v, MAX_COMMENT));
 
     const cached = await getCachedSummary(storyId, targetLanguage);
-    if (cached) return json({ summary: cached, cached: true });
+    if (cached) return json({ summary: cached, cached: true, ...aiMetadata() });
 
     const summary = await summarizeWithModel(title, bodyText, comments, targetLanguage);
     await cacheSummary(storyId, targetLanguage, summary);
-    return json({ summary });
+    // AIGC 隐式标识：备案要求接口返回的 AI 生成内容须带元数据（GB 45438-2025 附录 E 的 {"AIGC":{...}} 结构）
+    return json({ summary, ...aiMetadata() });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';
     return errorResponse(message, safeErrorStatus(message));

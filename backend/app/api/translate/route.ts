@@ -1,4 +1,5 @@
 import { hasProEntitlement } from '../../../lib/entitlement';
+import { aiMetadata } from '../../../lib/ai-metadata';
 import { errorResponse, json, safeErrorStatus } from '../../../lib/http';
 import { env } from '../../../lib/env';
 import { translateWithModel } from '../../../lib/model';
@@ -129,6 +130,8 @@ export async function POST(request: Request): Promise<Response> {
   await Promise.all(Array.from({ length: Math.min(8, entries.length) }, () => worker()));
     return json({
       results,
+      // AIGC 隐式标识：备案要求接口返回的 AI 生成内容须带元数据（GB 45438-2025 附录 E 的 {"AIGC":{...}} 结构）
+      ...aiMetadata(),
       ...(topicRemaining === undefined ? {} : { remainingTopics: topicRemaining }),
       ...(legacyRemaining === undefined ? {} : { remainingTranslations: legacyRemaining }),
     });

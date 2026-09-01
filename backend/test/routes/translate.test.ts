@@ -35,6 +35,28 @@ describe('POST /api/translate', () => {
     expect(body.remainingTranslations).toBe(19);
   });
 
+  it('response carries AIGC implicit metadata (GB 45438-2025 附录 E / 备案要求)', async () => {
+    globalThis.fetch = llm({ hello: '你好' });
+    const { POST } = await import('../../app/api/translate/route.js');
+    const res = await POST(new Request('http://localhost/api/translate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-install-id': 'c1' },
+      body: JSON.stringify({ targetLanguage: 'zh-Hans', entries: [{ key: 'k1', text: 'hello' }] }),
+    }));
+    const body = await res.json();
+    const meta = body.AIGC;
+    expect(meta).toMatchObject({
+      Label: '1', // 1=AI 生成
+      // 首次写入方即运营主体，按 GB 45438-2025 附录 E 注 1：首写时两要素一致
+      ContentProducer: '苏州终北科技有限公司',
+      ContentPropagator: '苏州终北科技有限公司',
+      ReservedCode1: 'm', // beforeEach 里 MODEL_NAME='m'，记录实际模型
+    });
+    // ProduceID/PropagateID 为批次唯一编号（UUID），且首写时一致（注 1）
+    expect(meta.ProduceID).toMatch(/^[0-9a-f-]{36}$/);
+    expect(meta.PropagateID).toBe(meta.ProduceID);
+  });
+
   it('empty-text entry returns empty translation without LLM/quota (batch not poisoned)', async () => {
     globalThis.fetch = llm({});
     const { POST } = await import('../../app/api/translate/route.js');
