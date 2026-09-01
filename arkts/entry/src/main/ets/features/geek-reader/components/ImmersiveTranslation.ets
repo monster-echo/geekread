@@ -202,7 +202,13 @@ export struct ImmersiveTranslation {
           // 只看译文：先显示原文（加载中），翻译完成后原地替换成译文；
           // 失败时保留原文，下方显示失败提示。
           if (this.result.length > 0) {
-            Text(this.result).fontSize(14).letterSpacing(0.8).fontColor(AppColors.text).width('100%')
+            // 《人工智能生成合成内容标识办法》显式标识：文字须同时含"AI"+"生成"两要素
+            Column({ space: AppSpacing.x1 }) {
+              Text(`AI生成译文 · ${labelOf(this.langOf())}`)
+                .fontSize(11)
+                .fontColor(AppColors.brand)
+              Text(this.result).fontSize(14).letterSpacing(0.8).fontColor(AppColors.text).width('100%')
+            }.alignItems(HorizontalAlign.Start).width('100%')
           } else {
             Column({ space: AppSpacing.x1 }) {
               if (this.rich) {
@@ -228,7 +234,8 @@ export struct ImmersiveTranslation {
             LoadingProgress().width(20).height(20)
           } else if (this.result.length > 0) {
             Column({ space: AppSpacing.x1 }) {
-              Text(`译 · ${labelOf(this.langOf())}`)
+              // 合规显式标识：文字须同时含"AI"+"生成"两要素，不能只写"译"
+              Text(`AI生成译文 · ${labelOf(this.langOf())}`)
                 .fontSize(11)
                 .fontColor(AppColors.brand)
               Text(this.result)
