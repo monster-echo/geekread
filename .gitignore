@@ -28,3 +28,6 @@ review_results.json
 
 # arkts build artifacts
 arkts/entry/.arkts/
+
+# 本地调试 scratch（接口手动自测用，含内网地址，不入库）
+test.http
