@@ -41,7 +41,7 @@ export struct GeekMemberPage {
           Text(this.isPro() ? 'Pro 会员' : '免费版')
             .fontSize(22).fontWeight(FontWeight.Bold).fontColor(AppColors.text).layoutWeight(1)
         }.width('100%')
-        Text(this.isPro() ? '每日 500 次评论翻译 · 已解锁' : '每日 20 次评论翻译 · 升级解锁 500 次')
+        Text(this.isPro() ? '每日 200 篇话题翻译 · 已解锁' : '每日 30 篇话题翻译 · 升级解锁 200 篇')
           .fontSize(14).fontColor(AppColors.textSecondary)
         if (this.isPro()) {
           Text('当前已是 Pro，感谢支持！').fontSize(12).fontColor(AppColors.success)

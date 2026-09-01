@@ -657,7 +657,7 @@ export class AppStore {
       this.purchaseStatus =
         verified.status === OrderStatus.Success ? PurchaseStatus.Success : PurchaseStatus.Failed
       if (verified.status === OrderStatus.Success) {
-        // 购买 Pro 成功：配额上限提升（20→500），解除客户端翻译配额熔断
+        // 购买 Pro 成功：配额上限提升（30→200 篇/天），解除客户端翻译配额熔断
         resetQuotaGate()
         // Best-effort membership refresh: re-bootstrap so the user tier reflects
         // the purchase. `initialize` needs the UIAbilityContext captured at boot.
