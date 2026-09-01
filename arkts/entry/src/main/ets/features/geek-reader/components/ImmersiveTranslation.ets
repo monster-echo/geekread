@@ -110,10 +110,12 @@ export struct ImmersiveTranslation {
     } catch (e) {
       // 库未就绪时静默降级（富文本用默认样式）
     }
-    // 需要译文（translation / both）时自动触发，不点击。清洗后为空的文本不触发
-    // （链接/图片型评论没有可译内容，避免空转圈）。
+    // 需要译文（translation / both）时自动触发，不点击。可译内容为空时不触发
+    // （链接/图片型评论没有文字内容，避免空转圈与浪费配额）。rich 时两个源都须非空：
+    // clean 为空说明纯图片/链接（Markdown 只剩 [](url) 骨架），不交给模型。
     if (this.displayMode !== 'original' && this.langOf() !== null &&
-      this.result.length === 0 && this.clean().trim().length > 0) {
+      this.result.length === 0 && this.translateSource().trim().length > 0 &&
+      this.clean().trim().length > 0) {
       this.doTranslate()
     }
   }
@@ -123,7 +125,9 @@ export struct ImmersiveTranslation {
     if (l === null) return
     this.loading = true
     this.failed = false
-    translate(this.clean(), l, this.free, this.topicId)
+    // 喂 Markdown 语法（rich）而非剥标签的纯文本：让模型看到列表/代码/引用/粗体等结构，
+    // 配合后端 prompt「保留 Markdown 标记符」，译文才能保留原文格式。
+    translate(this.translateSource(), l, this.free, this.topicId)
       .then((t: string) => {
         if (typeof t === 'string' && t.length > 0 && t !== 'undefined') {
           this.result = t
@@ -162,12 +166,28 @@ export struct ImmersiveTranslation {
     return this.cleanCache
   }
 
+  /** 翻译源文本：rich（正文/评论）传 Markdown 语法以保留结构；标题等纯文本用 clean。 */
+  private translateSource(): string {
+    return this.rich ? this.markdown() : this.clean()
+  }
+
   private showOriginal(): boolean {
     return this.displayMode === 'original' || this.displayMode === 'both'
   }
 
   private showTranslation(): boolean {
     return this.displayMode === 'translation' || this.displayMode === 'both'
+  }
+
+  // 译文渲染：与原文共用同一个 Markdown 控制器 → 字号/行高/块间距一致，markdown 标记被正确解析；
+  // non-rich（标题）用纯文本对齐原路径 fontSize(15)。不再用 fontSize(14)+letterSpacing(0.8) 造成与原文不一致。
+  @Builder
+  translatedResult() {
+    if (this.rich) {
+      Markdown({ controller: this.mdController, text: this.result })
+    } else {
+      Text(this.result).fontSize(15).fontColor(AppColors.text).width('100%')
+    }
   }
 
   build() {
@@ -196,7 +216,7 @@ export struct ImmersiveTranslation {
               Text(appString(AppString.AIGeneratedTranslation, this.locale))
                 .fontSize(11)
                 .fontColor(AppColors.brand)
-              Text(this.result).fontSize(14).letterSpacing(0.8).fontColor(AppColors.text).width('100%')
+              this.translatedResult()
             }.alignItems(HorizontalAlign.Start).width('100%')
           } else {
             Column({ space: AppSpacing.x1 }) {
@@ -227,10 +247,7 @@ export struct ImmersiveTranslation {
               Text(appString(AppString.AIGeneratedTranslation, this.locale))
                 .fontSize(11)
                 .fontColor(AppColors.brand)
-              Text(this.result)
-                .fontSize(14)
-                .letterSpacing(0.8)
-                .fontColor(AppColors.text)
+              this.translatedResult()
             }
             .alignItems(HorizontalAlign.Start)
             .border({ width: { left: 3 } })

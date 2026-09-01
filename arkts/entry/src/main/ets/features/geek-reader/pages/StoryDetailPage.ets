@@ -2,13 +2,11 @@ import common from '@ohos.app.ability.common'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
-import { fetchItems, fetchStoryTree, reportComment, summarizeStory } from '../data/GeekReaderApiClient'
+import { fetchItems, fetchStoryTree, reportComment } from '../data/GeekReaderApiClient'
 import { Comment, Story, toComment, toStory } from '../domain/Models'
 import { buildCommentTree, CommentNode, FlatComment, flattenTree } from '../application/Comments'
-import { htmlToText, ImmersiveTranslation } from '../components/ImmersiveTranslation'
+import { ImmersiveTranslation } from '../components/ImmersiveTranslation'
 import { savePixelMapToCache, shareImage } from '../../../media/ShareImage'
-import { deriveTargetLanguage } from '../application/Locale'
-import { translate } from '../application/TranslationCache'
 import { telemetry, TelemetryValue } from '../../../telemetry/Telemetry'
 
 function timeAgo(unix: number): string {
@@ -20,11 +18,6 @@ function timeAgo(unix: number): string {
   return `${Math.floor(d / 86400)}d`
 }
 
-interface CardComment {
-  by: string
-  text: string
-}
-
 interface DialogIndex {
   index: number
 }
@@ -34,9 +27,6 @@ interface DialogIndex {
 // 懒渲染（ImmersiveTranslation 内 setLazyRender）把单帧爆发切小。
 const RENDER_BATCH = 10
 
-// LLM 摘要开关：暂关（质量与耗时待优化），恢复改 true。
-const SUMMARY_ENABLED = false
-
 @Component
 export struct StoryDetailPage {
   @ObjectLink store: AppStore
@@ -45,8 +35,6 @@ export struct StoryDetailPage {
   @State collapsed: number[] = []
   @State loading: boolean = true
   @State commentsLoading: boolean = false
-  @State summary: string = ''
-  @State topComments: CardComment[] = []
   @State refreshing: boolean = false
   // 分屏渲染：先挂载前 RENDER_BATCH 条评论（重量级 Markdown 组件），
   // 滚动接近底部再挂下一批，避免 200 条同时 mount 卡顿；未挂载的评论
@@ -105,7 +93,7 @@ export struct StoryDetailPage {
       this.store.detailTitle = s?.title ?? ''
       if (s !== null) {
         this.tree = []
-        await this.loadComments(s, id) // 内部完成后会触发 prepareCard + timing 上报
+        await this.loadComments(s, id) // 内部完成后会触发 timing 上报
       }
     } catch (e) {
       // 刷新失败保留原内容
@@ -130,7 +118,6 @@ export struct StoryDetailPage {
       this.timingTreeMs = Date.now() - treeStart
       this.timingCommentCount = this.buildFlat().length
       this.reportTiming('ok')
-      this.prepareCard()
     } catch {
       this.timingTreeMs = Date.now() - treeStart
       this.reportTiming('tree_error')
@@ -227,27 +214,7 @@ export struct StoryDetailPage {
     ctx.openLink(url)
   }
 
-  /** 选精选评论：按回复数降序取前 2 条（排除删除/空评论）。 */
-  private pickTopComments(): CardComment[] {
-    const candidates: CommentNode[] = []
-    for (let i = 0; i < this.tree.length; i++) {
-      const n = this.tree[i]
-      if (n.deleted || n.dead) continue
-      if (n.text.trim().length === 0) continue
-      candidates.push(n)
-    }
-    candidates.sort((a: CommentNode, b: CommentNode) => b.replies.length - a.replies.length)
-    const out: CardComment[] = []
-    for (let i = 0; i < candidates.length && i < 2; i++) {
-      const c = candidates[i]
-      const clean = htmlToText(c.text)
-      const text = clean.length > 80 ? clean.slice(0, 80) + '…' : clean
-      out.push({ by: c.by, text: text })
-    }
-    return out
-  }
-
-  /** AI 摘要：标题 + 作者 + 摘要 + 精选评论（large=false 页面内小字号，true 分享截图大字号）。 */
+  /** 分享卡片内容：标题 + 作者/分数/时间（large=true 分享截图大字号）。 */
   @Builder
   cardContent(large: boolean) {
     Column({ space: AppSpacing.x4 }) {
@@ -258,24 +225,6 @@ export struct StoryDetailPage {
       Text(`${this.story?.by ?? ''} · ${this.story?.score ?? 0} 分 · ${timeAgo(this.story?.time ?? 0)}`)
         .fontSize(large ? 14 : 12).fontColor(AppColors.textSecondary)
         .width('100%')
-      if (this.summary.length > 0) {
-        Divider().color(AppColors.border)
-        Text(this.summary)
-          .fontSize(large ? 18 : 15).fontColor(AppColors.text).lineHeight(large ? 26 : 22)
-          .width('100%')
-      }
-      if (this.topComments.length > 0) {
-        Divider().color(AppColors.border)
-        ForEach(this.topComments, (c: CardComment, index: number) => {
-          Column({ space: AppSpacing.x1 }) {
-            Text(c.by).fontSize(12).fontColor(AppColors.brand)
-            Text(c.text).fontSize(large ? 14 : 15).fontColor(AppColors.textSecondary)
-              .maxLines(3).textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .alignItems(HorizontalAlign.Start)
-          .width('100%')
-        }, (c: CardComment, index: number) => `${index}-${c.by}`)
-      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
@@ -295,63 +244,6 @@ export struct StoryDetailPage {
     .padding(AppSpacing.x6)
     .backgroundColor(AppColors.surface)
     .alignItems(HorizontalAlign.Start)
-  }
-
-  /** 评论加载完成后生成精选评论（清洗 HTML + 翻译）+ LLM 摘要（后端按 storyId 缓存）。 */
-  private async prepareCard(): Promise<void> {
-    if (this.story === null) return
-    const cardStart = Date.now()
-    const lang = deriveTargetLanguage(this.store.language) // null = 英文用户，无需翻译
-
-    // 精选评论：HTML → 干净文本（英文原文，供摘要与翻译用）
-    this.topComments = this.pickTopComments()
-    const enComments: string[] = this.topComments.map((c: CardComment) => c.text)
-
-    // 翻译精选评论（非英文用户），失败保留原文
-    if (lang !== null) {
-      const translated: CardComment[] = []
-      for (let i = 0; i < this.topComments.length; i++) {
-        const c = this.topComments[i]
-        try {
-          const t = await translate(c.text, lang, true)
-          translated.push({ by: c.by, text: t.length > 0 ? t : c.text })
-        } catch (e) {
-          translated.push(c)
-        }
-      }
-      this.topComments = translated
-    }
-
-    console.log(`[geekread][card] after pickTopComments=${this.topComments.length} tree=${this.tree.length}`)
-    // LLM 摘要暂关（质量与耗时待优化，恢复改 SUMMARY_ENABLED = true 即可）：
-    // 不再调 summarizeStory，仅保留精选评论卡片
-    this.summary = ''
-    if (SUMMARY_ENABLED) {
-      // LLM 摘要：英文评论给模型，输出目标语言摘要（lang 为 null 时用英文）
-      try {
-        this.summary = await summarizeStory({
-          storyId: this.story.id,
-          title: this.story.title,
-          text: this.story.text,
-          comments: enComments,
-          targetLanguage: lang ?? 'en',
-        })
-      } catch (e) {
-        this.summary = ''
-        const msg = e instanceof Error ? e.message : String(e)
-        telemetry.report(new Error(`summarize_failed: ${msg}`))
-      }
-    }
-    this.timingSummaryMs = Date.now() - cardStart
-    // 摘要完成后补报一次（含 summary_ms；tree 阶段已报过的不含）
-    const props = new Map<string, TelemetryValue>()
-    props.set('story_id', this.story.id)
-    props.set('result', this.summary.length > 0 ? 'card_ok' : 'card_no_summary')
-    props.set('story_ms', this.timingStoryMs)
-    props.set('tree_ms', this.timingTreeMs)
-    props.set('summary_ms', this.timingSummaryMs)
-    props.set('total_ms', Date.now() - this.timingStart)
-    telemetry.track('detail_timing', props)
   }
 
   private async share(): Promise<void> {
@@ -414,11 +306,6 @@ export struct StoryDetailPage {
               }
               Text(`${this.story.score}${appString(AppString.PointsComments, this.store.language)}${this.story.by} · ${this.story.commentsCount} ${appString(AppString.Comments, this.store.language)}`)
                 .fontSize(12).fontColor(AppColors.textSecondary)
-
-              // AI 摘要：正文与评论之间展示（有摘要或精选评论时才显示），与正文/评论同风格无背景
-              if (this.summary.length > 0 || this.topComments.length > 0) {
-                this.cardContent(false)
-              }
 
               // 评论异步加载期间、且还没有任何评论渲染出来时，显示一个小号转圈
               if (this.commentsLoading && this.buildFlat().length === 0) {
