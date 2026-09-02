@@ -1,16 +1,16 @@
-FROM node:22-alpine AS deps
+FROM registry.cn-hangzhou.aliyuncs.com/happytreefriends/node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-FROM node:22-alpine AS build
+FROM registry.cn-hangzhou.aliyuncs.com/happytreefriends/node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # schema 先于 next build 生成客户端类型
 RUN npx prisma generate && npm run build
 
-FROM node:22-alpine AS run
+FROM registry.cn-hangzhou.aliyuncs.com/happytreefriends/node:22-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
