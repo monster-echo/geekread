@@ -3,10 +3,11 @@ import { ConfigurationConstant } from '@kit.AbilityKit'
 import { UIContext } from '@kit.ArkUI'
 import { apiClient, ApiFailure } from '../data/ApiClient'
 import { localStore } from '../data/LocalStore'
-import { AppUser, AuthPayload, OrderStatus, OrderView, PurchaseStatus, RuntimeConfig }
+import { AppUser, AuthPayload, BillingPlan, OrderStatus, OrderView, PurchaseStatus, RuntimeConfig }
   from '../domain/Models'
 import { RemoteDataStore } from './RemoteDataStore'
 import { HMSIapProvider } from '../payment/HMSIapProvider'
+import { MockPaymentProvider } from '../payment/MockPaymentProvider'
 import { PaymentProvider } from '../payment/PaymentProvider'
 import { AppRoute } from '../navigation/AppRoute'
 import { telemetry, TelemetryConfig } from '../telemetry/Telemetry'
@@ -99,9 +100,13 @@ export class AppStore {
   private context: common.UIAbilityContext | null = null
   private uiContext: UIContext | null = null
   private iap: HMSIapProvider = new HMSIapProvider()
+  private mock: MockPaymentProvider = new MockPaymentProvider()
   private initialized: boolean = false
 
-  private iapProvider(): PaymentProvider {
+  private iapProvider(provider: string): PaymentProvider {
+    // 演示支付（配置 plan.provider='mock'）：走 MockPaymentProvider，供模拟器/开发环境全流程测试；
+    // 生产配置 provider='huawei'/'hms' 等始终走华为 IAP。
+    if (provider === 'mock') return this.mock
     if (this.context !== null) this.iap.setContext(this.context)
     return this.iap
   }
@@ -646,12 +651,35 @@ export class AppStore {
     this.purchaseOrder = null
     this.purchaseMessage = ''
     try {
+      // 先定位方案：决定走演示支付（mock）还是华为 IAP 真购买
+      const plan = this.resolvePlan(planId)
+      const planProvider = plan === null ? '' : plan.provider
       const idempotencyKey: string =
         `ark-${Date.now()}-${Math.random().toString(36).slice(2)}`
       const order = await apiClient.createOrder(planId, idempotencyKey)
-      // 华为 IAP 真购买；开发测试可切回 MockPaymentProvider。
-      const provider = this.iapProvider()
+      // 华为 IAP 真购买；plan.provider='mock' 时走 MockPaymentProvider（开发/模拟器演示）。
+      const provider = this.iapProvider(planProvider)
       const result = await provider.purchase(order.storeProductId)
+      if (planProvider === 'mock') {
+        // 演示支付：本地标记成功并解除翻译配额熔断，不调服务端 verify
+        // （生产环境服务端禁用 mock，MOCK_PAYMENT_FORBIDDEN）。不产生真实权益，
+        // 会员档位仍由服务端订阅状态决定。
+        const demoView: OrderView = {
+          id: order.orderId,
+          planId: planId,
+          status: OrderStatus.Success,
+          amountMinor: plan === null ? 0 : plan.priceMinor,
+          currency: plan === null ? 'CNY' : plan.currency,
+          provider: 'mock',
+          createdAt: '',
+          completedAt: ''
+        }
+        this.purchaseOrder = demoView
+        this.purchaseStatus = PurchaseStatus.Success
+        resetQuotaGate()
+        this.showToast('演示支付成功（未产生真实权益）')
+        return true
+      }
       const verified = await apiClient.verifyPurchase(order.orderId, result.receipt)
       this.purchaseOrder = verified
       this.purchaseStatus =
@@ -689,6 +717,15 @@ export class AppStore {
   startCheckout(planId: string): void {
     this.purchaseStatus = PurchaseStatus.Idle
     this.pendingPlanId = planId
+  }
+
+  // 按 planId 从运行时配置定位订阅方案；不在配置中返回 null。
+  private resolvePlan(planId: string): BillingPlan | null {
+    const plans = this.config?.plans ?? []
+    for (let i = 0; i < plans.length; i++) {
+      if (plans[i].id === planId) return plans[i]
+    }
+    return null
   }
 
   showToast(message: string, error: boolean = false): void {

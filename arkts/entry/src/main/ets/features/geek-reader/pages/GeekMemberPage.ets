@@ -77,7 +77,7 @@ export struct GeekMemberPage {
                   Text(plan.name).fontSize(17).fontWeight(FontWeight.Bold).fontColor(AppColors.text)
                   Text(planPriceLabel(plan)).fontSize(15).fontColor(AppColors.brand)
                 }.alignItems(HorizontalAlign.Start).layoutWeight(1)
-                if (plan.interval === 'yearly') {
+                if (plan.interval === 'yearly' || plan.interval === 'year') {
                   Text('省 45%').fontSize(12).fontColor(AppColors.onBrand)
                     .padding({ left: 8, right: 8, top: 3, bottom: 3 })
                     .backgroundColor(AppColors.brand).borderRadius(6)

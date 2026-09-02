@@ -41,6 +41,11 @@ export class HMSIapProvider implements PaymentProvider {
   purchase(storeProductId: string): Promise<PurchaseResult> {
     const ctx = this.context
     if (ctx == null) return Promise.reject(new Error('IAP context not set'))
+    // 模拟器/无 HMS IAP 运行时：@kit.IAPKit 解析为空命名空间，直接调用会抛
+    // "queryEnvironmentStatus of undefined"。用系统能力探测提前拦截，给友好提示而非 TypeError。
+    if (!canIUse('SystemCapability.Payment.IAP')) {
+      return Promise.reject(new Error('当前设备不支持华为应用内支付（模拟器或无 HMS IAP 运行时），请使用真机测试'))
+    }
     // 先检查 IAP 环境（AGC 未配商品时 queryEnvironmentStatus 抛错 → 返回错误，避免 createPurchase native 崩溃）
     return iap.queryEnvironmentStatus(ctx)
       .then(() => this.doPurchase(ctx, storeProductId))
@@ -67,6 +72,8 @@ export class HMSIapProvider implements PaymentProvider {
   restore(): Promise<PurchaseResult[]> {
     const ctx = this.context
     if (ctx == null) return Promise.resolve([])
+    // 无 IAP 能力的环境（模拟器等）直接返回空，避免对未解析的 kit 调用。
+    if (!canIUse('SystemCapability.Payment.IAP')) return Promise.resolve([])
     const parameter: iap.QueryPurchasesParameter = {
       productType: iap.ProductType.AUTORENEWABLE,
     }
