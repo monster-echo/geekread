@@ -1,4 +1,5 @@
 import common from '@ohos.app.ability.common'
+import { vibrator } from '@kit.SensorServiceKit'
 import { AppStore } from '../../../state/AppStore'
 import { appString, AppString } from '../../../localization/AppStrings'
 import { AppColors, AppSpacing } from '../../../theme/AppTokens'
@@ -187,6 +188,10 @@ export struct StoryDetailPage {
 
   /** 长按评论 → 举报弹窗（内容合规反馈入口）。 */
   private promptReport(fc: FlatComment): void {
+    console.log(`[report] prompt for comment ${fc.node.id}`)
+    // 长按触觉反馈：轻震动确认手势已识别（设备无震动马达/权限异常时静默跳过）
+    vibrator.startVibration({ type: 'preset', effectId: vibrator.HapticFeedback.EFFECT_SOFT },
+      { usage: 'touch' }).catch(() => {})
     const reasons = ['spam', 'illegal', 'false_info']
     const labels = ['垃圾广告', '违法违规', '不实信息']
     this.getUIContext().getPromptAction().showDialog({
@@ -328,7 +333,10 @@ export struct StoryDetailPage {
                 .alignItems(HorizontalAlign.Start)
                 .padding({ left: fc.depth * 12, top: AppSpacing.x2, bottom: AppSpacing.x2 })
                 .border({ width: { left: fc.depth > 0 ? 1 : 0 }, color: AppColors.border })
-                .gesture(LongPressGesture().onAction(() => this.promptReport(fc)))  // 长按评论 → 举报
+                // priorityGesture：Markdown 组件内部手势（链接点击/文本选择机制）按
+                // ArkUI「子组件优先」竞争规则会吃掉普通 .gesture 的长按（v1.0.10 起原文
+                // 也走 Markdown 渲染后长按举报失效）；提权让父组件长按优先于子组件。
+                .priorityGesture(LongPressGesture().onAction(() => this.promptReport(fc)))  // 长按评论 → 举报
               }, (fc: FlatComment) => `${fc.node.id}`)
             }
             .padding(AppSpacing.x4)
