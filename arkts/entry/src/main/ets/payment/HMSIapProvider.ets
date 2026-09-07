@@ -1,6 +1,7 @@
 /**
  * HMS IAP provider — 适配当前 @hms.core.iap SDK（@since 6.1.0(23)）。
- * purchase() → purchaseData(base64) → 解码取 purchaseToken → 后端 HMSAdapter 验证。
+ * purchase() → purchaseData(base64) → 解码 purchaseToken + purchaseOrderId → 后端验证。
+ * purchaseOrderId 是服务端「订单状态查询」API（HarmonyOS NEXT）的必选参数，必须随收据上送。
  */
 import common from '@ohos.app.ability.common'
 import util from '@ohos.util'
@@ -11,18 +12,24 @@ import { telemetry } from '../telemetry/Telemetry'
 
 interface IapPurchaseData {
   purchaseToken?: string
+  purchaseOrderId?: string
+}
+
+interface IapReceipt {
+  purchaseToken: string
+  purchaseOrderId: string
 }
 
 const base64 = new util.Base64Helper()
 
-function decodePurchaseToken(purchaseData: string): string {
+function decodePurchase(purchaseData: string): IapReceipt {
   try {
     const bytes = base64.decodeSync(purchaseData)
     const json = util.TextDecoder.create().decodeToString(bytes)
     const parsed = JSON.parse(json) as IapPurchaseData
-    return parsed.purchaseToken ?? ''
+    return { purchaseToken: parsed.purchaseToken ?? '', purchaseOrderId: parsed.purchaseOrderId ?? '' }
   } catch (e) {
-    return ''
+    return { purchaseToken: '', purchaseOrderId: '' }
   }
 }
 
@@ -61,9 +68,10 @@ export class HMSIapProvider implements PaymentProvider {
       productType: iap.ProductType.AUTORENEWABLE,
     }
     return iap.createPurchase(ctx, parameter).then((result: iap.CreatePurchaseResult) => {
-      const token = decodePurchaseToken(result.purchaseData)
+      const r = decodePurchase(result.purchaseData)
       const receipt: Record<string, string | boolean | null> = {}
-      receipt['purchaseToken'] = token
+      receipt['purchaseToken'] = r.purchaseToken
+      receipt['purchaseOrderId'] = r.purchaseOrderId
       const out: PurchaseResult = { storeProductId, receipt }
       return out
     })
@@ -80,9 +88,10 @@ export class HMSIapProvider implements PaymentProvider {
     return iap.queryOwnedPurchases(ctx, parameter).then((result: iap.QueryPurchasesResult) => {
       const results: PurchaseResult[] = []
       for (let i = 0; i < result.inAppPurchaseDataList.length; i++) {
-        const token = decodePurchaseToken(result.inAppPurchaseDataList[i])
+        const r = decodePurchase(result.inAppPurchaseDataList[i])
         const receipt: Record<string, string | boolean | null> = {}
-        receipt['purchaseToken'] = token
+        receipt['purchaseToken'] = r.purchaseToken
+        receipt['purchaseOrderId'] = r.purchaseOrderId
         const item: PurchaseResult = { storeProductId: '', receipt }
         results.push(item)
       }

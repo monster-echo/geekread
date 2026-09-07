@@ -5,7 +5,9 @@ import { toStory } from '../domain/Models'
 import { getEntitlementToken } from './Entitlement'
 import { telemetry } from '../../../telemetry/Telemetry'
 
-const GEEK_READER_BASE: string = 'https://geekread.zhongbei.tech'
+// biz 服务域名（2026-09-07 由 geekread. 迁移）：DNS only 直连源站，不走 Cloudflare 代理
+// （CF 国际节点曾致国内审核设备翻译请求 30s 超时）。旧域名在 Caddy 保留兼容存量版本。
+const GEEK_READER_BASE: string = 'https://geekread-biz.zhongbei.tech'
 
 /** BusinessError（http 请求失败）的最小结构，用于提取真实报错。 */
 interface HttpErrorLike {
