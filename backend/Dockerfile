@@ -18,6 +18,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/package.json ./package.json
 COPY prisma ./prisma
+COPY data ./data
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 8787
 # 启动前执行迁移（幂等）；prisma CLI 已在 dependencies

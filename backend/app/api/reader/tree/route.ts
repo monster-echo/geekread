@@ -1,5 +1,6 @@
 import { errorResponse, json } from '../../../../lib/http';
 import { fetchCommentTree } from '../../../../lib/hacker-news';
+import { blockedIdsForItems, isStoryBlocked } from '../../../../lib/content-filter';
 
 /**
  * POST /api/reader/tree { storyId }
@@ -21,7 +22,15 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    return json(await fetchCommentTree(storyId));
+    // story 被下架：整棵树不下发（返回空树 + blocked 标记，避免客户端整页报错）
+    if (await isStoryBlocked(storyId)) {
+      return json({ items: [], cached: false, stale: false, blocked: true });
+    }
+    const data = await fetchCommentTree(storyId);
+    // 出站过滤：被下架的评论移除；其子评论因父节点缺失自然不渲染
+    const blocked = await blockedIdsForItems(data.items, 'comment');
+    const items = data.items.filter((item) => !blocked.has(Number(item.id)));
+    return json({ ...data, items, ...(blocked.size > 0 ? { blocked: blocked.size } : {}) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'internal_error';
     return errorResponse(message, 500);

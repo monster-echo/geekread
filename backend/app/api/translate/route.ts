@@ -6,13 +6,15 @@ import { translateWithModel } from '../../../lib/model';
 import { reserveDaily, today, topicLimitFor } from '../../../lib/quota';
 import { reserveTopicTranslation } from '../../../lib/quota-store';
 import { cacheTranslation, getCachedTranslation } from '../../../lib/cache-store';
+import { blockedIds } from '../../../lib/blocklist';
+import { reviewTexts, type ModerationVerdict } from '../../../lib/moderation';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
 const MAX_ENTRIES = 20;
 const MAX_TOTAL_CHARS = 12_000;
 
 type Entry = { key: string; text: string };
-type Result = { key: string; translation?: string; cached?: boolean; error?: string };
+type Result = { key: string; translation?: string; cached?: boolean; error?: string; blocked?: boolean };
 
 export async function POST(request: Request): Promise<Response> {
   const installId = request.headers.get('x-install-id');
@@ -65,6 +67,14 @@ export async function POST(request: Request): Promise<Response> {
       throw new Error(`invalid_request: total chars exceed ${MAX_TOTAL_CHARS}`);
     }
 
+    // 内容合规审核：先于缓存/配额/模型调用。
+    // - story 被人工拉黑 → 整批不下发（旧客户端不带 storyId 时只能靠文本审核兜底）；
+    // - 单条命中 → 返回 blocked，不调模型、不写缓存、不扣配额（免费通道同样拦截）。
+    const storyBlocked = storyId === undefined ? false : (await blockedIds('story', [storyId])).has(storyId);
+    const verdicts: ModerationVerdict[] = storyBlocked
+      ? entries.map(() => ({ blocked: true, labels: [], reason: 'blocked_story', provider: 'blocklist' as const }))
+      : await reviewTexts(entries.map((entry) => entry.text));
+
     const day = today();
     const results: Result[] = new Array(entries.length);
     let legacyRemaining: number | undefined;
@@ -79,6 +89,11 @@ export async function POST(request: Request): Promise<Response> {
         const entry = entries[index];
         if (!entry) return;
         try {
+          if (verdicts[index]?.blocked) {
+            // 命中内容审核/黑名单：原文不下发给模型、不返回译文、不写缓存、不扣配额
+            results[index] = { key: entry.key, error: 'blocked', blocked: true };
+            continue;
+          }
           if (entry.text.length === 0) {
             results[index] = { key: entry.key, translation: '', cached: true };
             continue;
@@ -128,10 +143,12 @@ export async function POST(request: Request): Promise<Response> {
 
     // 并发 8：20 条/批 × 单条 ~3.8s，4 并发要 ~19s 会触发客户端 15s 超时；8 并发 ~11s
   await Promise.all(Array.from({ length: Math.min(8, entries.length) }, () => worker()));
+    const blockedCount = results.filter((result) => result.blocked === true).length;
     return json({
       results,
       // AIGC 隐式标识：备案要求接口返回的 AI 生成内容须带元数据（GB 45438-2025 附录 E 的 {"AIGC":{...}} 结构）
       ...aiMetadata(),
+      ...(blockedCount > 0 ? { blocked: blockedCount } : {}),
       ...(topicRemaining === undefined ? {} : { remainingTopics: topicRemaining }),
       ...(legacyRemaining === undefined ? {} : { remainingTranslations: legacyRemaining }),
     });

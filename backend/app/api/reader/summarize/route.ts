@@ -2,6 +2,8 @@ import { errorResponse, json, requireString, safeErrorStatus } from '../../../..
 import { aiMetadata } from '../../../../lib/ai-metadata';
 import { summarizeWithModel } from '../../../../lib/model';
 import { cacheSummary, getCachedSummary } from '../../../../lib/cache-store';
+import { isStoryBlocked } from '../../../../lib/content-filter';
+import { reviewTexts } from '../../../../lib/moderation';
 
 const SUPPORTED = new Set(['en', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ms', 'id', 'th', 'vi', 'ar']);
 const MAX_TITLE = 300;
@@ -31,6 +33,15 @@ export async function POST(request: Request): Promise<Response> {
     const rawComments = (payload as { comments?: unknown }).comments;
     if (!Array.isArray(rawComments) || rawComments.length > MAX_COMMENTS) throw new Error('invalid_request');
     const comments: string[] = rawComments.map((v) => requireString(v, MAX_COMMENT));
+
+    // 内容合规：story 被拉黑 / 标题正文评论命中审核 → 不生成、不返回（也避免命中历史缓存）
+    if (await isStoryBlocked(storyId)) {
+      return errorResponse('content_blocked', 403, { blocked: true });
+    }
+    const verdicts = await reviewTexts([title, bodyText, ...comments]);
+    if (verdicts.some((verdict) => verdict.blocked)) {
+      return errorResponse('content_blocked', 403, { blocked: true });
+    }
 
     const cached = await getCachedSummary(storyId, targetLanguage);
     if (cached) return json({ summary: cached, cached: true, ...aiMetadata() });

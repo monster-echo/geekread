@@ -80,13 +80,30 @@ model TopicUsage {
 
 /// 内容举报（替代 Redis list geekread:reports）
 model Report {
-  id        Int      @id @default(autoincrement())
-  storyId   Int
-  commentId Int
-  reason    String
-  text      String   @default("")
-  installId String
-  ts        BigInt   @default(0)
+  id         Int       @id @default(autoincrement())
+  storyId    Int
+  commentId  Int
+  reason     String
+  text       String    @default("")
+  installId  String
+  ts         BigInt    @default(0)
+  /// 审核处置时间（null = 未处理）
+  reviewedAt DateTime?
 
   @@index([ts])
+}
+
+/// 违规内容黑名单（人工/举报处置/审核服务判定）：出站层与翻译入口命中即不下发/不翻译。
+/// kind: story | comment；targetId 为 Hacker News item id。
+model BlockedContent {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  targetId  Int
+  reason    String   @default("")
+  /// 来源：manual（人工）/ report（举报处置）/ auto（审核服务）
+  source    String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([kind, targetId])
+  @@index([kind, targetId])
 }

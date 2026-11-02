@@ -141,10 +141,14 @@ export struct ImmersiveTranslation {
         const msg = e instanceof Error ? e.message : String(e)
         if (msg === 'quota_exceeded') {
           this.isQuota = true
+          this.failedMsg = msg
+        } else if (msg === 'blocked') {
+          // 内容合规拦截：不是故障，不做异常上报；提示用户该内容不符合展示规范
+          this.failedMsg = '内容不符合展示规范，已停止翻译'
         } else {
           telemetry.report(new Error(`translate_failed: ${msg}`))
+          this.failedMsg = msg
         }
-        this.failedMsg = msg
         this.failed = true
         this.loading = false
       })
